@@ -2,8 +2,8 @@
 layout: home
 permalink: index.html
 
-repository-name: PetGuard-Pro
-title: PetGuard Pro – Smart Pet Monitoring System
+repository-name: e21-3yp-Smart-Dog-Collar
+title: PetGuard Pro
 ---
 
 # PetGuard Pro  
