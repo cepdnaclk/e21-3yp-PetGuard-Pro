@@ -29,7 +29,11 @@
     },
     {
       "name": "Dr. Isuru Nawinne",
-      "email": "isurun@eng.pdn.ac.lk"
+      "email": "isurunawinne@eng.pdn.ac.lk"
+    },
+    {
+      "name": "Mr. Thilina Gunarathne",
+      "email": "thilinag@eng.pdn.ac.lk"
     }
   ],
   "tags": ["IoT", "Embedded Systems", "Mobile Application", "Cloud Computing", "AWS"]
