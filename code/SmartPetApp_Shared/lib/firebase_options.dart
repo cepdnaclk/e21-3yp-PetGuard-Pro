@@ -4,16 +4,6 @@ import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
-/// Default [FirebaseOptions] for use with your Firebase apps.
-///
-/// Example:
-/// ```dart
-/// import 'firebase_options.dart';
-/// // ...
-/// await Firebase.initializeApp(
-///   options: DefaultFirebaseOptions.currentPlatform,
-/// );
-/// ```
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
@@ -47,6 +37,8 @@ class DefaultFirebaseOptions {
     projectId: 'petguardpro-efda9',
     authDomain: 'petguardpro-efda9.firebaseapp.com',
     storageBucket: 'petguardpro-efda9.firebasestorage.app',
+    databaseURL:
+        'https://petguardpro-efda9-default-rtdb.asia-southeast1.firebasedatabase.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
@@ -55,6 +47,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '751087584610',
     projectId: 'petguardpro-efda9',
     storageBucket: 'petguardpro-efda9.firebasestorage.app',
+    databaseURL:
+        'https://petguardpro-efda9-default-rtdb.asia-southeast1.firebasedatabase.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
@@ -64,6 +58,8 @@ class DefaultFirebaseOptions {
     projectId: 'petguardpro-efda9',
     storageBucket: 'petguardpro-efda9.firebasestorage.app',
     iosBundleId: 'com.example.smartPetApp',
+    databaseURL:
+        'https://petguardpro-efda9-default-rtdb.asia-southeast1.firebasedatabase.app',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -73,6 +69,8 @@ class DefaultFirebaseOptions {
     projectId: 'petguardpro-efda9',
     storageBucket: 'petguardpro-efda9.firebasestorage.app',
     iosBundleId: 'com.example.smartPetApp',
+    databaseURL:
+        'https://petguardpro-efda9-default-rtdb.asia-southeast1.firebasedatabase.app',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
@@ -82,5 +80,7 @@ class DefaultFirebaseOptions {
     projectId: 'petguardpro-efda9',
     authDomain: 'petguardpro-efda9.firebaseapp.com',
     storageBucket: 'petguardpro-efda9.firebasestorage.app',
+    databaseURL:
+        'https://petguardpro-efda9-default-rtdb.asia-southeast1.firebasedatabase.app',
   );
 }

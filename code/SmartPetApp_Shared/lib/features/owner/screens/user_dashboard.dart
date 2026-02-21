@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import '../location/screens/dashboard_screen.dart' show LocationDashboard;
 
 // Replace this with your actual login screen import
-import '../../auth/screens/login_screen.dart'; 
+import '../../auth/screens/login_screen.dart';
 
 class UserDashboardScreen extends StatefulWidget {
   const UserDashboardScreen({super.key});
@@ -41,8 +42,10 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.pets), label: 'Pets'),
-          BottomNavigationBarItem(icon: Icon(Icons.notifications), label: 'Alerts'),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Reports'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.notifications), label: 'Alerts'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.bar_chart), label: 'Reports'),
         ],
       ),
     );
@@ -283,8 +286,7 @@ class GradientCard extends StatelessWidget {
                 Text(title,
                     style: const TextStyle(
                         color: Colors.black, fontWeight: FontWeight.bold)),
-                Text(subtitle,
-                    style: const TextStyle(color: Colors.black87)),
+                Text(subtitle, style: const TextStyle(color: Colors.black87)),
               ],
             ),
           ),
@@ -298,7 +300,7 @@ class GradientCard extends StatelessWidget {
 }
 
 //////////////////////////////////////////////////////////////
-// HOME TAB
+// HOME TAB - WITH GPS NAVIGATION
 //////////////////////////////////////////////////////////////
 
 class UserHomeTab extends StatelessWidget {
@@ -312,30 +314,35 @@ class UserHomeTab extends StatelessWidget {
         "subtitle": "Monitor pet location",
         "value": "Active",
         "icon": Icons.gps_fixed,
+        "route": "gps", // ← Add route identifier
       },
       {
         "title": "Alerts",
         "subtitle": "Pending notifications",
         "value": "2",
         "icon": Icons.notifications,
+        "route": null,
       },
       {
         "title": "Health Monitoring",
         "subtitle": "Pet health stats",
         "value": "92%",
         "icon": Icons.favorite,
+        "route": null,
       },
       {
         "title": "Collar Status",
         "subtitle": "Connected",
         "value": "Online",
         "icon": Icons.watch,
+        "route": null,
       },
       {
         "title": "Activity Monitoring",
         "subtitle": "Track daily pet activity",
         "value": "Normal",
         "icon": Icons.directions_run,
+        "route": null,
       },
     ];
 
@@ -346,7 +353,8 @@ class UserHomeTab extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: ListView(
           children: stats.map((s) {
-            return GradientCard(
+            // Make GPS card tappable
+            Widget card = GradientCard(
               leading: Icon(
                 s["icon"] as IconData,
                 color: const Color.fromARGB(255, 0, 150, 136),
@@ -357,6 +365,23 @@ class UserHomeTab extends StatelessWidget {
               trailing: s["value"] as String,
               colors: [Colors.blueGrey.shade50, Colors.blueGrey.shade100],
             );
+
+            // Wrap with InkWell if it has a route
+            if (s["route"] == "gps") {
+              return InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const LocationDashboard(),
+                    ),
+                  );
+                },
+                child: card,
+              );
+            }
+
+            return card;
           }).toList(),
         ),
       ),
