@@ -128,36 +128,55 @@ class HealthDashboardScreen extends ConsumerWidget {
 
   // ───────────────── VITALS ─────────────────
 
-  Widget _buildVitalsCards(HealthVitals vitals) {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildVitalCard(
-            title: 'Heart Rate',
-            value:
-                vitals.heartRate > 0 ? vitals.heartRate.toString() : '--',
-            unit: 'BPM',
-            icon: Icons.favorite,
-            iconColor: Colors.red,
-            status: vitals.heartRate > 0 ? vitals.heartRateStatus : null,
+Widget _buildVitalsCards(HealthVitals vitals) {
+  return Column(
+    children: [
+      // ── Row 1: Heart Rate + Temperature ──
+      Row(
+        children: [
+          Expanded(
+            child: _buildVitalCard(
+              title: 'Heart Rate',
+              value: vitals.heartRate > 0 ? vitals.heartRate.toString() : '--',
+              unit: 'BPM',
+              icon: Icons.favorite,
+              iconColor: Colors.red,
+              status: vitals.heartRate > 0 ? vitals.heartRateStatus : null,
+            ),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildVitalCard(
-            title: 'Temperature',
-            value: vitals.temperature > 0
-                ? vitals.temperature.toStringAsFixed(1)
-                : '--',
-            unit: '°C',
-            icon: Icons.thermostat,
-            iconColor: Colors.orange,
-            status: vitals.temperature > 0 ? vitals.temperatureStatus : null,
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildVitalCard(
+              title: 'Temperature',
+              value: vitals.temperature > 0
+                  ? vitals.temperature.toStringAsFixed(1)
+                  : '--',
+              unit: '°C',
+              icon: Icons.thermostat,
+              iconColor: Colors.orange,
+              status: vitals.temperature > 0 ? vitals.temperatureStatus : null,
+            ),
           ),
+        ],
+      ),
+
+      const SizedBox(height: 12),
+
+      // ── Row 2: SpO2 full width ──
+      SizedBox(
+        width: double.infinity,
+        child: _buildVitalCard(
+          title: 'SpO2',
+          value: vitals.spo2 > 0 ? vitals.spo2.toString() : '--',
+          unit: '%',
+          icon: Icons.bloodtype,
+          iconColor: Colors.blue,
+          status: vitals.spo2 > 0 ? vitals.spo2Status : null,
         ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
+}
 
  Widget _buildVitalCard({
   required String title,
@@ -166,6 +185,7 @@ class HealthDashboardScreen extends ConsumerWidget {
   required IconData icon,
   required Color iconColor,
   VitalStatus? status,
+  bool fullWidth = false,
 }) {
   final statusColor = switch (status) {
     VitalStatus.normal  => Colors.green,
@@ -181,7 +201,7 @@ class HealthDashboardScreen extends ConsumerWidget {
     null                => null,
   };
 
-  return Card(
+  final card = Card(
     elevation: 2,
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
     child: Padding(
@@ -236,6 +256,7 @@ class HealthDashboardScreen extends ConsumerWidget {
       ),
     ),
   );
+  return fullWidth ? card : card;
 }
 
   // ───────────────── SUPPORTING UI ─────────────────
@@ -277,7 +298,6 @@ Widget _buildTrendsSection(WidgetRef ref) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      // Day picker row
       Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -295,7 +315,6 @@ Widget _buildTrendsSection(WidgetRef ref) {
       ),
       const SizedBox(height: 8),
 
-      // Chart
       historyAsync.when(
         data: (history) => history.isEmpty
             ? _buildNoDataCard()
@@ -344,26 +363,45 @@ String _formatSelectedDay(DateTime day) {
 }
 
 Widget _buildCharts(List<HealthVitals> history) {
+  final validHeartRateHistory = history.where((v) => v.heartRate > 0).toList();
+  final validTempHistory      = history.where((v) => v.temperature > 30).toList();
+  final validSpo2History      = history.where((v) => v.spo2 > 0).toList();
+
   return Column(
     children: [
+      // Heart Rate
       _buildLineChart(
         label: 'Heart Rate (BPM)',
-        spots: history.asMap().entries.map((e) =>
+        spots: validHeartRateHistory.asMap().entries.map((e) =>
           FlSpot(e.key.toDouble(), e.value.heartRate.toDouble())).toList(),
         color: Colors.red,
         minY: 40,
         maxY: 180,
-        history: history,
+        history: validHeartRateHistory,   
       ),
       const SizedBox(height: 16),
+
+      // Temperature
       _buildLineChart(
         label: 'Temperature (°C)',
-        spots: history.asMap().entries.map((e) =>
+        spots: validTempHistory.asMap().entries.map((e) =>
           FlSpot(e.key.toDouble(), e.value.temperature)).toList(),
         color: Colors.orange,
         minY: 36,
         maxY: 42,
-        history: history,
+        history: validTempHistory,
+      ),
+      const SizedBox(height: 16),
+
+      // SpO2
+      _buildLineChart(
+        label: 'SpO2 (%)',
+        spots: validSpo2History.asMap().entries.map((e) =>
+          FlSpot(e.key.toDouble(), e.value.spo2.toDouble())).toList(),
+        color: Colors.blue,
+        minY: 85,
+        maxY: 100,
+        history: validSpo2History,
       ),
     ],
   );

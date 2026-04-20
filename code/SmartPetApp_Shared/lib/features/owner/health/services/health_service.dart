@@ -32,4 +32,8 @@ class HealthService {
   return _repository.getHealthHistoryForDay(petId, day);
   }
 
+  Stream<List<HealthVitals>> getHealthHistoryStream(DateTime day) {
+  return _repository.getHealthHistoryStream(petId, day);
+}
+
 }

@@ -13,24 +13,10 @@ final healthVitalsStreamProvider = StreamProvider<HealthVitals>((ref) {
   return healthService.getHealthVitalsStream();
 });
 
-final _historyRefreshTickerProvider = StreamProvider.autoDispose<int>((ref) {
-  return Stream.periodic(const Duration(seconds: 30), (i) => i);
-});
-
 final selectedDayProvider = StateProvider<DateTime>((ref) => DateTime.now());
 
-final healthHistoryProvider = FutureProvider.autoDispose<List<HealthVitals>>((ref) async {
+final healthHistoryProvider = StreamProvider.autoDispose<List<HealthVitals>>((ref) {
   final service = ref.watch(healthServiceProvider);
   final day = ref.watch(selectedDayProvider);
-
-  // Watch the ticker only if today is selected — forces re-fetch every 30s
-  final now = DateTime.now();
-  final isToday = day.year == now.year &&
-                  day.month == now.month &&
-                  day.day == now.day;
-  if (isToday) {
-    ref.watch(_historyRefreshTickerProvider);
-  }
-
-  return service.getHealthHistoryForDay(day);
+  return service.getHealthHistoryStream(day);
 });

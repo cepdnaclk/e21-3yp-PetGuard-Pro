@@ -1,11 +1,13 @@
 class HealthVitals {
   final int heartRate;
   final double temperature;
+  final int spo2; 
   final DateTime timestamp;
 
   HealthVitals({
     required this.heartRate,
     required this.temperature,
+    required this.spo2,
     required this.timestamp,
   });
 
@@ -19,6 +21,7 @@ factory HealthVitals.fromJson(Map<String, dynamic> json) {
   return HealthVitals(
     heartRate: (json['heartRate'] as num).toInt(),
     temperature: (json['temperature'] as num).toDouble(),
+    spo2:        (json['spo2']        as num? ?? 0).toInt(),
     timestamp: DateTime.parse(ts),
   );
 }
@@ -27,6 +30,7 @@ factory HealthVitals.fromJson(Map<String, dynamic> json) {
     return {
       'heartRate': heartRate,
       'temperature': temperature,
+      'spo2':        spo2,
       'timestamp': timestamp.toIso8601String(),
     };
   }
@@ -44,6 +48,12 @@ extension HealthVitalsStatus on HealthVitals {
   VitalStatus get temperatureStatus {
     if (temperature >= 38.0 && temperature <= 39.2) return VitalStatus.normal;
     if (temperature >= 37.2 && temperature <= 40.0) return VitalStatus.caution;
+    return VitalStatus.danger;
+  }
+
+  VitalStatus get spo2Status {
+    if (spo2 >= 95) return VitalStatus.normal;
+    if (spo2 >= 90) return VitalStatus.caution;
     return VitalStatus.danger;
   }
 }
