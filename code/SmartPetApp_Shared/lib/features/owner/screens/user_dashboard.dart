@@ -1,7 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../location/screens/dashboard_screen.dart' show LocationDashboard;
 import '../health/screens/health_dashboard_screen.dart';
 import '../activity/screens/activity_dashboard_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 // Replace this with your actual login screen import
 import '../../auth/screens/login_screen.dart';
@@ -161,17 +163,17 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
                     content: const Text("Are you sure you want to logout?"),
                     actions: [
                       TextButton(
-                        onPressed: () => Navigator.pop(context), // Cancel
-                        child: const Text("Cancel"),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(context); // Close dialog
+                        onPressed: () async {
+                          Navigator.pop(context);
+
+                          await FirebaseAuth.instance.signOut();
+
                           Navigator.pushAndRemoveUntil(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => const LoginScreen()),
-                            (route) => false, // Remove all previous routes
+                              builder: (context) => const LoginScreen(),
+                            ),
+                            (route) => false,
                           );
                         },
                         child: const Text("Logout"),
@@ -410,39 +412,238 @@ class UserHomeTab extends StatelessWidget {
 }
 
 // PETS TAB
-class UserPetsTab extends StatelessWidget {
+class UserPetsTab extends StatefulWidget {
   const UserPetsTab({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final pets = [
-      {"name": "Buddy", "type": "Dog", "age": "3 years"},
-      {"name": "Max", "type": "Cat", "age": "2 years"},
-    ];
+  State<UserPetsTab> createState() => _UserPetsTabState();
+}
 
+class _UserPetsTabState extends State<UserPetsTab> {
+  final user = FirebaseAuth.instance.currentUser;
+
+  Future<Map<String, dynamic>?> fetchSelectedPet() async {
+    if (user == null) return null;
+
+    final firestore = FirebaseFirestore.instance;
+
+    // 1. Get user document
+    final userDoc =
+        await firestore.collection('users').doc(user!.uid).get();
+
+    if (!userDoc.exists) return null;
+
+    final userData = userDoc.data();
+
+    if (userData == null) return null;
+
+    // 2. Get selectedPetId ONLY
+    final String? selectedPetId = userData['selectedPetId'];
+
+    if (selectedPetId == null || selectedPetId.isEmpty) {
+      return null;
+    }
+
+    // 3. Fetch pet document
+    final petDoc =
+        await firestore.collection('pets').doc(selectedPetId).get();
+
+    if (!petDoc.exists) return null;
+
+    return petDoc.data();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: const DashboardAppBar(title: "Pets"),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: ListView.builder(
-          itemCount: pets.length,
-          itemBuilder: (context, index) {
-            final p = pets[index];
-            return GradientCard(
-              leading: const Icon(Icons.pets,
-                  color: Color.fromARGB(255, 0, 150, 136), size: 30),
-              title: p["name"]!,
-              subtitle: "${p["type"]} | Age: ${p["age"]}",
-              trailing: "",
-              colors: [Colors.blueGrey.shade50, Colors.blueGrey.shade100],
+      body: FutureBuilder<Map<String, dynamic>?>(
+        future: fetchSelectedPet(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (!snapshot.hasData || snapshot.data == null) {
+            return const Center(
+              child: Text("No pet assigned to this user"),
             );
-          },
-        ),
+          }
+
+          final p = snapshot.data!;
+
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: GradientCard(
+              leading: const Icon(
+                Icons.pets,
+                color: Color.fromARGB(255, 0, 150, 136),
+                size: 30,
+              ),
+              title: p['petName'] ?? 'Unnamed Pet',
+              subtitle:
+                  "Type: ${p['type'] ?? 'Unknown'} | Age: ${p['age'] ?? '-'}",
+              trailing: p['petId'] ?? '',
+              colors: [
+                Colors.blueGrey.shade50,
+                Colors.blueGrey.shade100
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 }
+
+
+// class UserPetsTab extends StatefulWidget {
+//   const UserPetsTab({super.key});
+
+//   @override
+//   State<UserPetsTab> createState() => _UserPetsTabState();
+// }
+
+// class _UserPetsTabState extends State<UserPetsTab> {
+//   final user = FirebaseAuth.instance.currentUser;
+
+//   Future<List<Map<String, dynamic>>> fetchUserPets() async {
+//     if (user == null) return [];
+
+//     final firestore = FirebaseFirestore.instance;
+
+//     // 1. Get user document
+//     final userDoc =
+//         await firestore.collection('users').doc(user!.uid).get();
+
+//     if (!userDoc.exists) return [];
+
+//     final data = userDoc.data()!;
+
+//     // SUPPORT BOTH single petId and list petIds
+//     List<String> petIds = [];
+
+//     // if (data.containsKey('petIds')) {
+//     //   petIds = List<String>.from(data['petIds']);
+//     // } else if (data.containsKey('petId') && data['petId'] != "") {
+//     //   petIds = [data['petId']];
+//     // }
+
+//     if (data.containsKey('petIds')) {
+//       petIds = List<String>.from(data['petIds']);
+//     } 
+//     else if (data.containsKey('petId') && data['petId'] != "") {
+//       petIds = [data['petId']];
+//     }
+//     else if (data.containsKey('selectedPetId') && data['selectedPetId'] != "") {
+//       petIds = [data['selectedPetId']]; // 🔥 THIS FIX
+//     }
+
+//     if (petIds.isEmpty) return [];
+
+//     // 2. Fetch pet documents
+//     List<Map<String, dynamic>> pets = [];
+
+//     for (String petId in petIds) {
+//       final petDoc =
+//           await firestore.collection('pets').doc(petId).get();
+
+//       if (petDoc.exists) {
+//         pets.add(petDoc.data()!);
+//       }
+//     }
+
+//     return pets;
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       backgroundColor: Colors.white,
+//       appBar: const DashboardAppBar(title: "Pets"),
+//       body: FutureBuilder<List<Map<String, dynamic>>>(
+//         future: fetchUserPets(),
+//         builder: (context, snapshot) {
+//           if (snapshot.connectionState == ConnectionState.waiting) {
+//             return const Center(child: CircularProgressIndicator());
+//           }
+
+//           if (!snapshot.hasData || snapshot.data!.isEmpty) {
+//             return const Center(
+//               child: Text("No pets assigned yet"),
+//             );
+//           }
+
+//           final pets = snapshot.data!;
+
+//           return Padding(
+//             padding: const EdgeInsets.all(16),
+//             child: ListView.builder(
+//               itemCount: pets.length,
+//               itemBuilder: (context, index) {
+//                 final p = pets[index];
+
+//                 return GradientCard(
+//                   leading: const Icon(
+//                     Icons.pets,
+//                     color: Color.fromARGB(255, 0, 150, 136),
+//                     size: 30,
+//                   ),
+//                   title: p['petName'] ?? 'Unnamed Pet',
+//                   subtitle:
+//                       "Type: ${p['type'] ?? 'Unknown'} | Age: ${p['age'] ?? '-'}",
+//                   trailing: p['petId'] ?? '',
+//                   colors: [
+//                     Colors.blueGrey.shade50,
+//                     Colors.blueGrey.shade100
+//                   ],
+//                 );
+//               },
+//             ),
+//           );
+//         },
+//       ),
+//     );
+//   }
+// }
+
+
+
+
+// class UserPetsTab extends StatelessWidget {
+//   const UserPetsTab({super.key});
+
+//   @override
+//   Widget build(BuildContext context) {
+//     final pets = [
+//       {"name": "Buddy", "type": "Dog", "age": "3 years"},
+//       {"name": "Max", "type": "Cat", "age": "2 years"},
+//     ];
+
+//     return Scaffold(
+//       backgroundColor: Colors.white,
+//       appBar: const DashboardAppBar(title: "Pets"),
+//       body: Padding(
+//         padding: const EdgeInsets.all(16),
+//         child: ListView.builder(
+//           itemCount: pets.length,
+//           itemBuilder: (context, index) {
+//             final p = pets[index];
+//             return GradientCard(
+//               leading: const Icon(Icons.pets,
+//                   color: Color.fromARGB(255, 0, 150, 136), size: 30),
+//               title: p["name"]!,
+//               subtitle: "${p["type"]} | Age: ${p["age"]}",
+//               trailing: "",
+//               colors: [Colors.blueGrey.shade50, Colors.blueGrey.shade100],
+//             );
+//           },
+//         ),
+//       ),
+//     );
+//   }
+// }
 
 // ALERTS TAB
 class UserAlertsTab extends StatelessWidget {
