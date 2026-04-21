@@ -35,9 +35,9 @@ title: PetGuard Pro
 
 ## Introduction
 
-Pet owners face major challenges in ensuring the safety and health of their pets due to the lack of real-time visibility and delayed response to emergencies. Pets cannot communicate health issues or dangerous situations, making timely intervention difficult.
+Pet owners face significant challenges in ensuring the safety and health of their pets due to limited real-time visibility and delayed responses to emergencies. Pets cannot communicate distress or abnormal conditions, making early detection difficult.
 
-**PetGuard Pro** addresses this problem by providing an IoT-based smart pet collar combined with a mobile application and a cloud backend. The system enables real-time location tracking, geo-fencing alerts, health monitoring, and instant notifications to ensure proactive and reliable pet care.
+**PetGuard Pro** addresses this problem through an IoT-based smart pet collar integrated with a cloud backend and a mobile application. The system provides real-time location tracking, geo-fencing alerts, health monitoring, and intelligent notifications, enabling proactive and reliable pet care.
 
 ---
 
@@ -45,61 +45,198 @@ Pet owners face major challenges in ensuring the safety and health of their pets
 
 PetGuard Pro follows a **device–cloud–mobile architecture**:
 
-- **Smart Pet Collar** collects location, activity, and health data using onboard sensors.
-- **Cloud Backend (AWS)** securely receives, processes, and stores data while handling alerts and scalability.
-- **Mobile Application (Flutter)** allows pet owners to monitor their pets in real time and receive notifications.
+- **Smart Pet Collar (Edge Device)**  
+  Collects location, physiological, and motion data using onboard sensors.
 
-Communication between the collar and cloud is handled using **MQTT**, while secure **HTTPS** APIs serve the mobile application.
+- **Cloud Backend (Firebase - Prototype)**  
+  Handles real-time data streaming, storage, and synchronization across devices.
+
+- **Mobile Application (Flutter)**  
+  Provides real-time visualization, alerts, and user interaction.
+
+### Communication Flow
+
+1. Sensors → ESP32 (data acquisition)  
+2. ESP32 → Firebase (via HTTPS REST APIs over WiFi)  
+3. Firebase → Mobile App (real-time streaming)  
+4. Mobile App → User interface updates & alerts  
+
+- Communication uses **HTTPS (REST)** instead of MQTT for simplicity and native Firebase compatibility.
+- Data is transmitted in **JSON format** with periodic updates (~10 seconds).
 
 ---
 
 ## Hardware & Software Designs
 
 ### Hardware Design (Pet Collar Unit)
+
 - **Microcontroller:** ESP32-WROOM-32  
-- **Positioning:** NEO-8M GPS  
-- **Connectivity:** SIM800L GSM/GPRS (2G)  
+- **Positioning:** NEO-M8N GPS  
+- **Connectivity:** WiFi (prototype), optional cellular for production  
 - **Sensors:**
-  - Temperature Sensor – MLX90614  
-  - Heart Rate Sensor – MAX30102  
-  - IMU – MPU6050  
+  - **Temperature:** MLX90614 (non-contact IR surface measurement)  
+  - **Heart Rate & SpO₂:** MAX30102 (PPG-based sensing)  
+  - **Motion Tracking:** MPU6050 (accelerometer + gyroscope)  
+
 - **Power System:**  
-  - 1500 mAh 3.7V Li-Po Battery  
-  - USB-C charging  
+  - 3.7V Li-Po Battery  
+  - Charging + voltage regulation circuitry  
+
+---
 
 ### Software Design
 
 #### Mobile Application
-- **Framework:** Flutter  
-- **Features:**  
-  - Live GPS tracking  
-  - Geo-fencing configuration  
-  - Health and activity visualization  
-  - Alert notifications and history logs  
 
-#### Cloud Backend
-- **Platform:** AWS  
-- **Services Used:**  
-  - AWS IoT Core (MQTT communication)  
-  - API Gateway & Lambda (application logic)  
-  - DynamoDB & S3 (data storage)  
-  - Cognito (authentication)  
-  - SNS (notifications & alerts)  
-  - CloudWatch (monitoring)  
+![Flutter Mobile Application](./images/FlutterApp.png)
+
+- **Framework:** Flutter (cross-platform, single codebase)
+
+##### Core Features
+- Real-time GPS tracking with map visualization  
+- Geo-fencing with boundary breach detection  
+- Health monitoring (heart rate, estimated body temperature)  
+- Activity recognition (resting, walking, active states)  
+- Smart alert notifications and history logs  
+
+##### Data Visualization & UX
+- Interactive charts for health trends  
+- Google Maps integration with route history (polylines)  
+- Responsive UI using Material Design principles  
+
+##### Performance Optimization
+- **State Management:** Riverpod  
+- **Selective UI Rebuilds** for efficiency  
+- **GPS filtering** using distance thresholds  
+- **Local caching (Hive)** for offline support and reduced latency  
+
+---
+
+#### ☁️ Cloud Backend (Prototype Implementation)
+
+- **Platform:** Firebase  
+
+##### Services Used:
+- **Realtime Database:** Live sensor data streaming  
+- **Cloud Firestore:** Structured storage (users, pets, logs)  
+- **Firebase Authentication:** Secure user access  
+- **Cloud Functions (optional):** Event-based processing  
+
+##### Key Features:
+- Real-time synchronization between device and app  
+- Scalable NoSQL data structure (per-pet organization)  
+- Efficient separation of live vs historical data  
+- Offline persistence support  
+
+![Database Structure](./images/DatabaseStructure.png)
+
+---
+
+### ⚙️ System Limitations & Workarounds
+
+- **GPS inaccuracy (indoors / dense areas)**  
+  → Uses filtered updates and last-known location fallback  
+
+- **PPG signal noise (motion artifacts)**  
+  → Moving average filtering and stability checks  
+
+- **Surface temperature vs core body temperature**  
+  → Offset-based calibration to estimate internal temperature  
+  → Used for trend monitoring rather than medical accuracy  
+
+- **WiFi instability (ESP32)**  
+  → Local buffering and retry mechanism for reliable transmission  
 
 ---
 
 ## Testing
 
-Testing was conducted at both **hardware** and **software** levels:
+## Testing
 
-- Sensor accuracy and reliability testing  
-- GPS tracking and geo-fence breach detection  
-- GSM connectivity and offline caching validation  
-- Cloud message throughput and alert latency testing  
-- Mobile app UI, API integration, and notification testing  
+Testing was conducted using a **layered, progressive validation strategy**, ensuring reliability at each stage of system development—from individual components to full system integration.
 
-Results confirmed stable performance under normal and limited-connectivity conditions.
+---
+
+### Testing Strategy & Validation Approach
+
+#### 1. API-Level Testing
+Initial validation focused on backend APIs using Postman.
+
+- Verified correct responses for all endpoints  
+- Ensured consistency of JSON data structures  
+- Validated error handling and edge-case behavior  
+
+---
+
+#### 2. Firebase Integration Testing
+The system was then integrated with Firebase to validate real-time data handling.
+
+- Manual database updates were performed  
+- Verified instant synchronization with the mobile application  
+- Confirmed stability and accuracy of real-time data streaming  
+
+---
+
+#### 3. Hardware Data Simulation (Pre-Hardware Phase)
+Before hardware availability, sensor data was simulated using an MQTT-based approach (HiveMQTT).
+
+- Emulated continuous sensor data streams  
+- Validated end-to-end flow: **device → cloud → mobile app**  
+- Ensured system behavior under real-time update conditions  
+
+---
+
+#### 4. Hardware Integration & Functional Testing
+After assembling the hardware, full system testing was conducted using WiFi-based communication.
+
+- Verified sensor readings:
+  - Heart rate (MAX30102)  
+  - Temperature (MLX90614)  
+  - Activity (MPU6050)  
+
+- Confirmed real-time data updates in the mobile application  
+- Evaluated system responsiveness during continuous operation  
+
+**Scenario-based validation included:**
+- Motion simulation for activity detection  
+- Body contact for heart rate measurement  
+- Environmental variation for temperature sensing  
+
+---
+
+#### 5. Communication & Reliability Testing
+- Tested data transmission stability over WiFi  
+- Validated retry mechanisms under intermittent connectivity  
+- Measured real-time update latency and consistency  
+
+---
+
+#### 6. Application Testing
+- UI responsiveness and performance validation  
+- State management behavior using Riverpod  
+- Firebase integration and real-time updates  
+- Notification triggering and alert accuracy  
+
+---
+
+#### 7. Field Testing
+- GPS accuracy in indoor and outdoor environments  
+- Geo-fence boundary detection and alert triggering  
+- System behavior under real-world usage conditions  
+
+---
+
+#### 8. Future Testing Plan (Scalability & Network Robustness)
+
+Large-scale testing has not yet been conducted due to the use of Firebase for rapid prototyping.
+
+Planned future work includes:
+
+- Migration to AWS-based scalable infrastructure  
+- Load testing with multiple devices and users  
+- Performance evaluation under high data throughput  
+- Integration of cellular (GSM) communication  
+- Validation under real network constraints  
 
 ---
 
@@ -108,22 +245,22 @@ Results confirmed stable performance under normal and limited-connectivity condi
 | Item                              | Quantity | Unit Cost (LKR) | Total (LKR) |
 |----------------------------------|:--------:|:---------------:|------------:|
 | ESP32 MCU                        | 1        | 1500            | 1500        |
-| GPS Module (NEO-8M)              | 1        | 3000            | 3000        |
-| GSM Module (SIM800L)             | 1        | 2000            | 2000        |
+| GPS Module (NEO-M8N)             | 1        | 3000            | 3000        |
 | Health Sensors (PPG, IMU, Temp)  | 1 set    | 3300            | 3300        |
 | Battery & Charging Circuit       | 1        | 2200            | 2200        |
 | Buck Converter                   | 1        | 1000            | 1000        |
 | LEDs & Buzzer                    | 1 set    | 150             | 150         |
 | PCB, Wiring & Connectors         | 1 set    | 1000            | 1000        |
 | Enclosure                        | 1        | 800             | 800         |
-| SIM Card                         | 1        | 500             | 500         |
-| **Total**                        |          |                 | **15,450**  |
+| **Total**                        |          |                 | **12,950**  |
 
 ---
 
 ## Conclusion
 
-PetGuard Pro successfully demonstrates a low-cost, scalable, and reliable smart pet monitoring system. The project integrates embedded hardware, cloud computing, and mobile technologies to deliver real-time safety and health insights. Future work includes improving battery life, enhancing analytics, and preparing the system for commercial deployment.
+PetGuard Pro demonstrates a scalable and efficient IoT-based smart pet monitoring system. By integrating embedded sensing, cloud-based data processing, and a responsive mobile application, the system enables real-time safety monitoring and health insights.
+
+The architecture is designed for extensibility, allowing future enhancements such as cellular connectivity, advanced analytics, and improved power optimization for real-world deployment.
 
 ---
 
@@ -133,4 +270,3 @@ PetGuard Pro successfully demonstrates a low-cost, scalable, and reliable smart 
 - [Project Page](https://cepdnaclk.github.io/e21-3yp-PetGuard-Pro/)
 - [Department of Computer Engineering](http://www.ce.pdn.ac.lk/)
 - [University of Peradeniya](https://eng.pdn.ac.lk/)
-
