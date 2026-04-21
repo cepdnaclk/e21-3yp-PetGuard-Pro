@@ -1,8 +1,8 @@
 #pragma once
 
 // ── WiFi ──────────────────────────────────────────────────────
-#define WIFI_SSID       "Galaxy M3288A4"
-#define WIFI_PASSWORD   "nljo7646"
+#define WIFI_SSID       ""
+#define WIFI_PASSWORD   ""
 
 // ── Firebase ──────────────────────────────────────────────────
 #define FIREBASE_HOST   "petguardpro-efda9-default-rtdb.asia-southeast1.firebasedatabase.app"
