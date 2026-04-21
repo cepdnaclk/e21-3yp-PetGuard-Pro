@@ -112,7 +112,7 @@ PetGuard Pro follows a **device–cloud–mobile architecture**:
 
 ---
 
-#### ☁️ Cloud Backend (Prototype Implementation)
+#### Cloud Backend (Prototype Implementation)
 
 - **Platform:** Firebase  
 
@@ -132,7 +132,7 @@ PetGuard Pro follows a **device–cloud–mobile architecture**:
 
 ---
 
-### ⚙️ System Limitations & Workarounds
+### System Limitations & Workarounds
 
 - **GPS inaccuracy (indoors / dense areas)**  
   → Uses filtered updates and last-known location fallback  
@@ -151,15 +151,13 @@ PetGuard Pro follows a **device–cloud–mobile architecture**:
 
 ## Testing
 
-## Testing
-
 Testing was conducted using a **layered, progressive validation strategy**, ensuring reliability at each stage of system development—from individual components to full system integration.
 
 ---
 
 ### Testing Strategy & Validation Approach
 
-#### 1. API-Level Testing
+#### API-Level Testing
 Initial validation focused on backend APIs using Postman.
 
 - Verified correct responses for all endpoints  
@@ -168,7 +166,7 @@ Initial validation focused on backend APIs using Postman.
 
 ---
 
-#### 2. Firebase Integration Testing
+#### Firebase Integration Testing
 The system was then integrated with Firebase to validate real-time data handling.
 
 - Manual database updates were performed  
@@ -177,7 +175,7 @@ The system was then integrated with Firebase to validate real-time data handling
 
 ---
 
-#### 3. Hardware Data Simulation (Pre-Hardware Phase)
+#### Hardware Data Simulation (Pre-Hardware Phase)
 Before hardware availability, sensor data was simulated using an MQTT-based approach (HiveMQTT).
 
 - Emulated continuous sensor data streams  
@@ -186,7 +184,7 @@ Before hardware availability, sensor data was simulated using an MQTT-based appr
 
 ---
 
-#### 4. Hardware Integration & Functional Testing
+#### Hardware Integration & Functional Testing
 After assembling the hardware, full system testing was conducted using WiFi-based communication.
 
 - Verified sensor readings:
@@ -204,14 +202,14 @@ After assembling the hardware, full system testing was conducted using WiFi-base
 
 ---
 
-#### 5. Communication & Reliability Testing
+#### Communication & Reliability Testing
 - Tested data transmission stability over WiFi  
 - Validated retry mechanisms under intermittent connectivity  
 - Measured real-time update latency and consistency  
 
 ---
 
-#### 6. Application Testing
+#### Application Testing
 - UI responsiveness and performance validation  
 - State management behavior using Riverpod  
 - Firebase integration and real-time updates  
@@ -219,14 +217,14 @@ After assembling the hardware, full system testing was conducted using WiFi-base
 
 ---
 
-#### 7. Field Testing
+#### Field Testing
 - GPS accuracy in indoor and outdoor environments  
 - Geo-fence boundary detection and alert triggering  
 - System behavior under real-world usage conditions  
 
 ---
 
-#### 8. Future Testing Plan (Scalability & Network Robustness)
+#### Future Testing Plan (Scalability & Network Robustness)
 
 Large-scale testing has not yet been conducted due to the use of Firebase for rapid prototyping.
 
