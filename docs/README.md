@@ -49,7 +49,7 @@ Pet owners face significant challenges in ensuring the safety and health of thei
 
 **Prototype Implementation Diagram**
 
-![Prototype Implementation](./images/protorype_implementation.png)
+![Prototype Implementation](./images/prototype_implementation.png)
 
 PetGuard Pro follows a **device–cloud–mobile architecture**:
 
