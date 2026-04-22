@@ -43,6 +43,14 @@ Pet owners face significant challenges in ensuring the safety and health of thei
 
 ## Solution Architecture
 
+**High Level Architecture Diagram**
+
+![High Level Architecture](.images/high_level_architecture.png)
+
+**Prototype Implementation Diagram**
+
+![Prototype Implementation](.images/protorype_implementation.png)
+
 PetGuard Pro follows a **device–cloud–mobile architecture**:
 
 - **Smart Pet Collar (Edge Device)**  
