@@ -45,11 +45,11 @@ Pet owners face significant challenges in ensuring the safety and health of thei
 
 **High Level Architecture Diagram**
 
-![High Level Architecture](.images/high_level_architecture.png)
+![High Level Architecture](./images/high_level_architecture.png)
 
 **Prototype Implementation Diagram**
 
-![Prototype Implementation](.images/protorype_implementation.png)
+![Prototype Implementation](./images/protorype_implementation.png)
 
 PetGuard Pro follows a **device–cloud–mobile architecture**:
 
