@@ -22,7 +22,7 @@ factory HealthVitals.fromJson(Map<String, dynamic> json) {
     heartRate: (json['heartRate'] as num).toInt(),
     temperature: (json['temperature'] as num).toDouble(),
     spo2:        (json['spo2']        as num? ?? 0).toInt(),
-    timestamp: DateTime.parse(ts),
+    timestamp: DateTime.parse(ts).toLocal(),
   );
 }
 
