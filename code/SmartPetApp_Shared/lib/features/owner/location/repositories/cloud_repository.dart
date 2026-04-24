@@ -1,8 +1,8 @@
 import '../models/pet_location.dart';
 import '../models/geofence.dart';
 
-/// Abstract interface for cloud data operations
-/// This allows easy switching between Firebase, AWS, or any cloud provider
+// Abstract interface for cloud data operations
+// This allows easy switching between Firebase, AWS, or any cloud provider
 abstract class CloudRepository {
   /// Initialize the repository
   Future<void> initialize();
@@ -35,7 +35,9 @@ abstract class CloudRepository {
     Map<String, dynamic> data,
   );
 
-  // NEW
   Future<List<Map<String, dynamic>>> getLocationHistory(String petId);
   Future<void> saveHistoryEntry(String petId, Map<String, dynamic> entry);
+
+  /// NEW: Real-time stream of location history — no polling needed
+  Stream<List<Map<String, dynamic>>> getLocationHistoryStream(String petId);
 }

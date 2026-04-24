@@ -169,7 +169,6 @@ class FirebaseRepository implements CloudRepository {
         }
       }
 
-      // Sort newest first
       history.sort((a, b) {
         final aTime = DateTime.parse(a['timestamp'] as String);
         final bTime = DateTime.parse(b['timestamp'] as String);
@@ -194,5 +193,39 @@ class FirebaseRepository implements CloudRepository {
     } catch (e) {
       debugPrint('Failed to save history entry: $e');
     }
+  }
+
+  /// NEW: Real-time stream — Firebase pushes updates automatically,
+  /// no polling or full re-fetch on every GPS ping
+  @override
+  Stream<List<Map<String, dynamic>>> getLocationHistoryStream(String petId) {
+    return _database
+        .ref('pets/$petId/location_history')
+        .orderByKey()
+        .onValue
+        .map((event) {
+      if (event.snapshot.value == null) return <Map<String, dynamic>>[];
+
+      final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+      final List<Map<String, dynamic>> history = [];
+
+      for (var entry in data.entries) {
+        try {
+          history.add(Map<String, dynamic>.from(entry.value as Map));
+        } catch (e) {
+          debugPrint('Failed to parse history entry in stream: $e');
+        }
+      }
+
+      // Sort newest first
+      history.sort((a, b) {
+        final aTime = DateTime.parse(a['timestamp'] as String);
+        final bTime = DateTime.parse(b['timestamp'] as String);
+        return bTime.compareTo(aTime);
+      });
+
+      debugPrint('History stream pushed ${history.length} entries');
+      return history;
+    });
   }
 }

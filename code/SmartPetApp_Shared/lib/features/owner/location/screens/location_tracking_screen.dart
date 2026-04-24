@@ -16,6 +16,10 @@ class _LocationTrackingScreenState
     extends ConsumerState<LocationTrackingScreen> {
   GoogleMapController? _mapController;
 
+  // Geofence placement state
+  bool _placingGeofence = false;
+  LatLng? _pendingGeofenceCenter;
+
   static const Color _teal = Color(0xFF00897B);
 
   @override
@@ -48,6 +52,30 @@ class _LocationTrackingScreenState
       ),
       body: locationStream.when(
         data: (location) {
+          // Build markers: always show pet location; add pending pin if placing
+          final markers = <Marker>{
+            Marker(
+              markerId: const MarkerId('pet_location'),
+              position: LatLng(location.latitude, location.longitude),
+              icon: BitmapDescriptor.defaultMarkerWithHue(
+                BitmapDescriptor.hueRed,
+              ),
+              infoWindow: InfoWindow(
+                title: 'Pet Location',
+                snippet: 'Last updated: ${_formatTime(location.timestamp)}',
+              ),
+            ),
+            if (_pendingGeofenceCenter != null)
+              Marker(
+                markerId: const MarkerId('geofence_center'),
+                position: _pendingGeofenceCenter!,
+                icon: BitmapDescriptor.defaultMarkerWithHue(
+                  BitmapDescriptor.hueAzure,
+                ),
+                infoWindow: const InfoWindow(title: 'Geofence Center'),
+              ),
+          };
+
           return Column(
             children: [
               // Location Info Card
@@ -97,21 +125,17 @@ class _LocationTrackingScreenState
                       myLocationEnabled: true,
                       myLocationButtonEnabled: false,
                       zoomControlsEnabled: false,
-                      markers: {
-                        Marker(
-                          markerId: const MarkerId('pet_location'),
-                          position:
-                              LatLng(location.latitude, location.longitude),
-                          icon: BitmapDescriptor.defaultMarkerWithHue(
-                            BitmapDescriptor.hueRed,
-                          ),
-                          infoWindow: InfoWindow(
-                            title: 'Pet Location',
-                            snippet:
-                                'Last updated: ${_formatTime(location.timestamp)}',
-                          ),
-                        ),
-                      },
+                      // When in placement mode, capture taps to set center
+                      onTap: _placingGeofence
+                          ? (LatLng tapped) {
+                              setState(() {
+                                _pendingGeofenceCenter = tapped;
+                                _placingGeofence = false;
+                              });
+                              _showAddGeofenceDialog(context, center: tapped);
+                            }
+                          : null,
+                      markers: markers,
                       circles: geofenceState.geofences
                           .where((fence) => fence.isActive)
                           .map(
@@ -130,6 +154,39 @@ class _LocationTrackingScreenState
                           .toSet(),
                     ),
 
+                    // Placement mode banner
+                    if (_placingGeofence)
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          color: _teal.withValues(alpha: 0.92),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 12, horizontal: 16),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.touch_app,
+                                  color: Colors.white, size: 20),
+                              const SizedBox(width: 8),
+                              const Expanded(
+                                child: Text(
+                                  'Tap anywhere on the map to place the geofence center',
+                                  style: TextStyle(
+                                      color: Colors.white, fontSize: 13),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () =>
+                                    setState(() => _placingGeofence = false),
+                                child: const Icon(Icons.close,
+                                    color: Colors.white, size: 20),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
                     // FABs top-right corner on the map
                     Positioned(
                       top: 12,
@@ -138,10 +195,20 @@ class _LocationTrackingScreenState
                         children: [
                           FloatingActionButton.small(
                             heroTag: 'add_geofence',
-                            backgroundColor: _teal,
-                            onPressed: () => _showAddGeofenceDialog(context),
-                            child: const Icon(Icons.add_location,
-                                color: Colors.white),
+                            backgroundColor:
+                                _placingGeofence ? Colors.orange : _teal,
+                            onPressed: () {
+                              setState(() {
+                                _placingGeofence = !_placingGeofence;
+                                _pendingGeofenceCenter = null;
+                              });
+                            },
+                            child: Icon(
+                              _placingGeofence
+                                  ? Icons.cancel
+                                  : Icons.add_location,
+                              color: Colors.white,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           FloatingActionButton.small(
@@ -214,7 +281,7 @@ class _LocationTrackingScreenState
                             ),
                             trailing: Switch(
                               value: fence.isActive,
-                              activeColor: _teal,
+                              activeThumbColor: _teal,
                               onChanged: (value) {
                                 ref
                                     .read(geofenceProvider.notifier)
@@ -276,12 +343,13 @@ class _LocationTrackingScreenState
     }
   }
 
-  void _showAddGeofenceDialog(BuildContext context) {
+  void _showAddGeofenceDialog(BuildContext context, {required LatLng center}) {
     final nameController = TextEditingController();
     final radiusController = TextEditingController(text: '100');
 
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: const Text('Add Geofence'),
         content: Column(
@@ -289,6 +357,7 @@ class _LocationTrackingScreenState
           children: [
             TextField(
               controller: nameController,
+              autofocus: true,
               decoration: const InputDecoration(
                 labelText: 'Geofence Name',
                 hintText: 'e.g., Home, Park',
@@ -303,45 +372,69 @@ class _LocationTrackingScreenState
                 hintText: '100',
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Geofence will be created at current pet location',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                const Icon(Icons.location_pin, size: 14, color: Colors.teal),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    'Center: ${center.latitude.toStringAsFixed(5)}, '
+                    '${center.longitude.toStringAsFixed(5)}',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              // Clear the pending pin if user cancels
+              setState(() => _pendingGeofenceCenter = null);
+              Navigator.pop(context);
+            },
             child: const Text('Cancel'),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: _teal),
             onPressed: () {
-              if (nameController.text.isEmpty) {
+              final name = nameController.text.trim();
+              if (name.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Please enter a name')),
                 );
                 return;
               }
 
-              final location = ref.read(locationStreamProvider).value;
-              if (location != null) {
-                final geofence = Geofence(
-                  id: DateTime.now().millisecondsSinceEpoch.toString(),
-                  name: nameController.text,
-                  centerLatitude: location.latitude,
-                  centerLongitude: location.longitude,
-                  radiusInMeters: double.tryParse(radiusController.text) ?? 100,
-                );
-
-                ref.read(geofenceProvider.notifier).addGeofence(geofence);
-                Navigator.pop(context);
-
+              final radius =
+                  double.tryParse(radiusController.text.trim()) ?? 100;
+              if (radius <= 0) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Geofence "${geofence.name}" added!')),
+                  const SnackBar(content: Text('Please enter a valid radius')),
                 );
+                return;
               }
+
+              final geofence = Geofence(
+                id: DateTime.now().millisecondsSinceEpoch.toString(),
+                name: name,
+                centerLatitude: center.latitude,
+                centerLongitude: center.longitude,
+                radiusInMeters: radius,
+              );
+
+              ref.read(geofenceProvider.notifier).addGeofence(geofence);
+
+              // Clear the temporary pin — the saved geofence circle replaces it
+              setState(() => _pendingGeofenceCenter = null);
+
+              Navigator.pop(context);
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Geofence "${geofence.name}" added!')),
+              );
             },
             child: const Text('Add', style: TextStyle(color: Colors.white)),
           ),

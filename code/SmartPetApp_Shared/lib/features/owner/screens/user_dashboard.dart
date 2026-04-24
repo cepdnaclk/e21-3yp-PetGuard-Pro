@@ -54,9 +54,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
   }
 }
 
-//////////////////////////////////////////////////////////////
 // COMMON APP BAR WITH PROFILE + ALERTS
-//////////////////////////////////////////////////////////////
 
 class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -301,9 +299,7 @@ class GradientCard extends StatelessWidget {
   }
 }
 
-//////////////////////////////////////////////////////////////
 // HOME TAB - WITH GPS NAVIGATION
-//////////////////////////////////////////////////////////////
 
 class UserHomeTab extends StatelessWidget {
   const UserHomeTab({super.key});
@@ -312,11 +308,11 @@ class UserHomeTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final stats = [
       {
-        "title": "GPS Tracking & Geofencing",
+        "title": "Location",
         "subtitle": "Monitor pet location",
         "value": "Active",
         "icon": Icons.gps_fixed,
-        "route": "gps", // ← Add route identifier
+        "route": "gps",
       },
       {
         "title": "Alerts",
@@ -326,7 +322,7 @@ class UserHomeTab extends StatelessWidget {
         "route": null,
       },
       {
-        "title": "Health Monitoring",
+        "title": "Health",
         "subtitle": "Pet health stats",
         "value": "92%",
         "icon": Icons.favorite,
@@ -340,8 +336,8 @@ class UserHomeTab extends StatelessWidget {
         "route": null,
       },
       {
-        "title": "Activity Monitoring",
-        "subtitle": "Track daily pet activity",
+        "title": "Activity",
+        "subtitle": "Daily pet activity",
         "value": "Normal",
         "icon": Icons.directions_run,
         "route": "activity",
@@ -370,36 +366,34 @@ class UserHomeTab extends StatelessWidget {
 
             // Wrap with InkWell if it has a route
             if (s["route"] != null) {
-  return InkWell(
-    onTap: () {
-      if (s["route"] == "gps") {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const LocationDashboard(),
-          ),
-        );
-      } 
-      else if (s["route"] == "health") {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const HealthDashboardScreen(),
-          ),
-        );
-      }
-      else if (s["route"] == "activity") {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const ActivityDashboardScreen(),
-          ),
-        );
-      }
-    },
-    child: card,
-  );
-}
+              return InkWell(
+                onTap: () {
+                  if (s["route"] == "gps") {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LocationDashboard(),
+                      ),
+                    );
+                  } else if (s["route"] == "health") {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const HealthDashboardScreen(),
+                      ),
+                    );
+                  } else if (s["route"] == "activity") {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ActivityDashboardScreen(),
+                      ),
+                    );
+                  }
+                },
+                child: card,
+              );
+            }
 
             return card;
           }).toList(),

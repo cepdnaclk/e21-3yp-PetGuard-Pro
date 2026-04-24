@@ -25,9 +25,9 @@ void main() async {
         options: DefaultFirebaseOptions.currentPlatform,
       );
     }
-    debugPrint('✅ Firebase initialized successfully');
+    debugPrint('Firebase initialized successfully');
   } catch (e, stack) {
-    debugPrint('❌ Firebase initialization failed: $e');
+    debugPrint('Firebase initialization failed: $e');
     debugPrint('$stack');
   }
 
@@ -48,9 +48,9 @@ void main() async {
   }
 
   try {
-  await HealthService().initialize();
+    await HealthService().initialize();
   } catch (e) {
-  debugPrint('Health service initialization error: $e');
+    debugPrint('Health service initialization error: $e');
   }
 
   try {
@@ -81,8 +81,7 @@ class MyApp extends StatelessWidget {
       home: const LoadingScreen(),
       routes: {
         Routes.login: (context) => const LoginScreen(),
-        Routes.healthDashboard: (context) =>
-        const HealthDashboardScreen(),
+        Routes.healthDashboard: (context) => const HealthDashboardScreen(),
         Routes.activityDashboard: (context) => const ActivityDashboardScreen(),
       },
     );

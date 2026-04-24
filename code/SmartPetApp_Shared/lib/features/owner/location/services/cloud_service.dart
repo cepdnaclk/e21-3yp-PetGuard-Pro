@@ -60,6 +60,10 @@ class CloudService {
     await _repository.saveHistoryEntry(petId, entry.toJson());
   }
 
+  Stream<List<Map<String, dynamic>>> getLocationHistoryStream() {
+    return _repository.getLocationHistoryStream(petId);
+  }
+
   void setRepository(CloudRepository repository) {
     _repository = repository;
     debugPrint('Cloud repository switched');
