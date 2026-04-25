@@ -31,7 +31,7 @@ The solution enables pet owners to remotely monitor their pets, receive instant 
 
 ## High-Level System Architecture
 
-![High Level Architecture](docs/images/high_level_architecture.PNG)
+![High Level Architecture](docs/images/high_level_architecture.png)
 
 The system follows a serverless AWS-based architecture that enables automatic scaling, low latency, and efficient handling of varying traffic loads.
 
