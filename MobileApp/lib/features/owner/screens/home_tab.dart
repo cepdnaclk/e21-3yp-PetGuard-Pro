@@ -162,8 +162,6 @@ class _PetHomeBodyState extends State<_PetHomeBody> with SingleTickerProviderSta
               ),
               const SizedBox(height: 24),
               const _StatusBanner(),
-              const SizedBox(height: 24),
-              _PetProfileCard(petData: widget.petData),
               const SizedBox(height: 32),
             ],
           ),
@@ -336,72 +334,6 @@ class _PetHeroCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class _PetProfileCard extends StatelessWidget {
-  final Map<String, dynamic> petData;
-  const _PetProfileCard({required this.petData});
-
-  @override
-  Widget build(BuildContext context) {
-    final size = petData['size'] as String? ?? 'Unknown';
-    final ageGroup = petData['ageGroup'] as String? ?? 'Unknown';
-    final coatType = petData['coatType'] as String? ?? 'Unknown';
-    final isFlatFaced = petData['isFlatFaced'] as String? ?? 'Unknown';
-    final activity = petData['activityLevel'] as String? ?? 'Unknown';
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: _kTeal.withOpacity(0.06), blurRadius: 24, offset: const Offset(0, 8))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Profile Details- removed after admin assigns the petID', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _kTextPrimary)),
-          const SizedBox(height: 16),
-          _buildDetailRow(Icons.monitor_weight_outlined, 'Size', size),
-          _buildDivider(),
-          _buildDetailRow(Icons.cake_outlined, 'Age Group', ageGroup),
-          _buildDivider(),
-          _buildDetailRow(Icons.cut_outlined, 'Coat Type', coatType),
-          _buildDivider(),
-          _buildDetailRow(Icons.face_retouching_natural, 'Flat-Faced Breed', isFlatFaced),
-          _buildDivider(),
-          _buildDetailRow(Icons.directions_run, 'Activity Level', activity),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(IconData icon, String title, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: const BoxDecoration(color: _kTealLight, shape: BoxShape.circle),
-            child: Icon(icon, color: _kTeal, size: 18),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(color: _kTextSecond, fontSize: 12, fontWeight: FontWeight.w600)),
-                Text(value, style: const TextStyle(color: _kTextPrimary, fontSize: 14, fontWeight: FontWeight.w500)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDivider() => Divider(color: Colors.grey.shade200, height: 16, thickness: 1);
 }
 
 class _PetAvatar extends StatelessWidget {
