@@ -116,6 +116,9 @@ class AuthRepository {
         confirmPassword.isEmpty) {
       return "Please fill in all fields.";
     }
+    if (password.length < 8) {
+      return "Password must be at least 8 characters.";
+    }
     if (password != confirmPassword) {
       return "Passwords do not match.";
     }
@@ -164,7 +167,7 @@ class AuthRepository {
     } else if (errorStr.contains('invalid-email')) {
       errorMessage = "The email address is not valid.";
     } else if (errorStr.contains('weak-password')) {
-      errorMessage = "Password must be at least 6 characters.";
+      errorMessage = "Password must be at least 8 characters.";
     }
     return errorMessage;
   }

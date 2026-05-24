@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../data/auth_repository.dart';
 import '../../../core/widgets/custom_button.dart';
 
@@ -21,6 +22,9 @@ class _SignupScreenState extends State<SignupScreen> {
 
   // ── State ─────────────────────────────────────────────────────────────────
   bool _isLoading = false;
+  bool _isPasswordLengthValid = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   // ── Dispose controllers when screen is removed ────────────────────────────
   @override
@@ -134,6 +138,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 controller: _fullNameController,
                 decoration: InputDecoration(
                   labelText: "Full Name",
+                  helperText: "Enter a prefered name",
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -148,6 +153,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
                   labelText: "Email",
+                  helperText: "Use a valid format like name@example.com",
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -160,8 +166,13 @@ class _SignupScreenState extends State<SignupScreen> {
               TextField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(10),
+                ],
                 decoration: InputDecoration(
                   labelText: "Phone Number",
+                  helperText: "Phone number should be 10 digits",
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -173,9 +184,39 @@ class _SignupScreenState extends State<SignupScreen> {
               // ── Password ─────────────────────────────────────────────────
               TextField(
                 controller: _passwordController,
-                obscureText: true,
+                obscureText: _obscurePassword,
+                onChanged: (value) {
+                  setState(() {
+                    _isPasswordLengthValid = value.length >= 8;
+                  });
+                },
                 decoration: InputDecoration(
                   labelText: "Password",
+                  helperText: _isPasswordLengthValid
+                      ? "Password length requirement satisfied"
+                      : "Password must be at least 8 characters",
+                  suffixIcon: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _isPasswordLengthValid
+                            ? Icons.check_circle
+                            : Icons.radio_button_unchecked,
+                        color: _isPasswordLengthValid ? Colors.green : Colors.grey,
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                        icon: Icon(
+                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -187,9 +228,22 @@ class _SignupScreenState extends State<SignupScreen> {
               // ── Confirm Password ─────────────────────────────────────────
               TextField(
                 controller: _confirmPasswordController,
-                obscureText: true,
+                obscureText: _obscureConfirmPassword,
                 decoration: InputDecoration(
                   labelText: "Confirm Password",
+                  suffixIcon: IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _obscureConfirmPassword = !_obscureConfirmPassword;
+                      });
+                    },
+                    icon: Icon(
+                      _obscureConfirmPassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                      color: Colors.grey,
+                    ),
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
