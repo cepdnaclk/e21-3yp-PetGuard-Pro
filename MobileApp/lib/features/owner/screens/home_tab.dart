@@ -298,15 +298,6 @@ class _PetHeroCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _TypeChip(label: petSize),
-                    _TypeChip(label: petAge),
-                  ],
-                ),
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
