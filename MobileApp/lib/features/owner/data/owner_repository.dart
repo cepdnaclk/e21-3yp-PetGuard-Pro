@@ -10,8 +10,8 @@ class OwnerRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // ── Cloudinary config ────────────────────────────────
-  static const _cloudName    = 'dnlqsxql3';  // your Cloud Name
-  static const _uploadPreset = 'pet_photos';  // your Upload Preset
+  static const _cloudName    = 'dnlqsxql3';
+  static const _uploadPreset = 'pet_photos';
   // ─────────────────────────────────────────────────────
 
   // Fetch user profile data
@@ -120,7 +120,7 @@ class OwnerRepository {
 
       final request = http.MultipartRequest('POST', uri)
         ..fields['upload_preset'] = _uploadPreset
-        ..fields['public_id']     = 'pet_photos/$docId'
+        ..fields['public_id']     = 'pet_photos/${docId}_${DateTime.now().millisecondsSinceEpoch}'
         ..files.add(
           await http.MultipartFile.fromPath('file', photoFile.path),
         );
@@ -135,13 +135,16 @@ class OwnerRepository {
       final json = jsonDecode(responseBody);
       final url  = json['secure_url'] as String;
 
-      // Save the Cloudinary URL into Firestore
+      // *** NEW *** Cache-bust so the app always loads the fresh photo
+      final cacheBustedUrl = '$url?v=${DateTime.now().millisecondsSinceEpoch}';
+
+      // Save the cache-busted URL into Firestore
       await _firestore
           .collection('pets')
           .doc(docId)
-          .update({'photoUrl': url});
+          .update({'photoUrl': cacheBustedUrl}); // *** CHANGED from url ***
 
-      return url;
+      return cacheBustedUrl; // *** CHANGED from url ***
     } catch (e) {
       throw Exception('Photo upload failed: $e');
     }

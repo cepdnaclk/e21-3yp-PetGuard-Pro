@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../data/owner_repository.dart';
 
@@ -21,6 +22,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
   bool loading = true;
   List<Map<String, dynamic>> pets = [];
   bool loadingPets = true;
+
+  // *** NEW *** Track which pet is currently uploading a photo
+  String? _uploadingPhotoForPetId;
 
   Future<void> loadUserData() async {
     final data = await _ownerRepository.fetchUserProfile();
@@ -83,6 +87,37 @@ class _UserProfilePageState extends State<UserProfilePage> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Pet updated successfully")),
     );
+  }
+
+  // *** NEW *** Pick and upload pet photo, then refresh pets list
+  Future<void> _handlePetPhotoUpload(String docId) async {
+    setState(() => _uploadingPhotoForPetId = docId);
+    try {
+      final url = await _ownerRepository.pickAndUploadPhoto(
+        docId: docId,
+        onError: (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Upload failed: $e'),
+                backgroundColor: Colors.red.shade700,
+              ),
+            );
+          }
+        },
+      );
+      if (url != null && mounted) {
+        await loadUserPets(); // *** NEW *** Refresh to show new photo
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pet photo updated!'),
+            backgroundColor: Color.fromARGB(255, 0, 150, 136),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _uploadingPhotoForPetId = null);
+    }
   }
 
   @override
@@ -201,25 +236,19 @@ class _UserProfilePageState extends State<UserProfilePage> {
                           obscureText: true,
                           decoration: const InputDecoration(labelText: "Old Password"),
                         ),
-
                         const SizedBox(height: 10),
-
                         TextField(
                           controller: newPasswordController,
                           obscureText: true,
                           decoration: const InputDecoration(labelText: "New Password"),
                         ),
-
                         const SizedBox(height: 10),
-
                         TextField(
                           controller: confirmPasswordController,
                           obscureText: true,
                           decoration: const InputDecoration(labelText: "Confirm New Password"),
                         ),
-
                         const SizedBox(height: 15),
-
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color.fromARGB(255, 0, 150, 136),
@@ -245,7 +274,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
                       ? const Center(child: CircularProgressIndicator())
                       : Column(
                           children: pets.map((petDoc) {
-                            // petDoc is already a Map from the repository
                             String petName = petDoc['petName'] ?? '';
                             String size = petDoc['size'] ?? '';
                             String ageGroup = petDoc['ageGroup'] ?? '';
@@ -253,6 +281,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
                             String isFlatFaced = petDoc['isFlatFaced']?.toString() ?? '';
                             String activityLevel = petDoc['activityLevel'] ?? '';
                             String docId = petDoc['_docId'] ?? '';
+                            // *** NEW ***
+                            String? photoUrl = petDoc['photoUrl'];
 
                             return Container(
                               margin: const EdgeInsets.only(bottom: 12),
@@ -261,52 +291,109 @@ class _UserProfilePageState extends State<UserProfilePage> {
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: ExpansionTile(
-                                leading: const Icon(Icons.pets,
-                                    color: Color.fromARGB(255, 0, 150, 136)),
+                                // *** NEW *** Show pet photo as leading avatar
+                                leading: CircleAvatar(
+                                  radius: 20,
+                                  backgroundColor: const Color.fromARGB(255, 0, 150, 136),
+                                  backgroundImage: photoUrl != null
+                                      ? NetworkImage(photoUrl)
+                                      : null,
+                                  child: photoUrl == null
+                                      ? const Icon(Icons.pets,
+                                          color: Colors.white, size: 20)
+                                      : null,
+                                ),
                                 title: Text(petDoc['petName'] ?? "Pet"),
-
                                 childrenPadding: const EdgeInsets.all(16),
-
                                 children: [
                                   Padding(
                                     padding: const EdgeInsets.all(16),
                                     child: Column(
                                       children: [
+
+                                        // *** NEW START *** — Pet photo picker
+                                        Center(
+                                          child: GestureDetector(
+                                            onTap: _uploadingPhotoForPetId == docId
+                                                ? null
+                                                : () => _handlePetPhotoUpload(docId),
+                                            child: Stack(
+                                              alignment: Alignment.bottomRight,
+                                              children: [
+                                                CircleAvatar(
+                                                  radius: 50,
+                                                  backgroundColor: Colors.grey.shade200,
+                                                  backgroundImage: photoUrl != null
+                                                      ? NetworkImage(photoUrl)
+                                                      : null,
+                                                  child: photoUrl == null
+                                                      ? Icon(Icons.pets,
+                                                          size: 45,
+                                                          color: Colors.grey.shade400)
+                                                      : null,
+                                                ),
+                                                if (_uploadingPhotoForPetId == docId)
+                                                  const Positioned.fill(
+                                                    child: CircleAvatar(
+                                                      backgroundColor: Colors.black38,
+                                                      child: CircularProgressIndicator(
+                                                        color: Colors.white,
+                                                        strokeWidth: 2.5,
+                                                      ),
+                                                    ),
+                                                  )
+                                                else
+                                                  CircleAvatar(
+                                                    radius: 16,
+                                                    backgroundColor:
+                                                        const Color.fromARGB(255, 0, 150, 136),
+                                                    child: const Icon(Icons.camera_alt,
+                                                        size: 16, color: Colors.white),
+                                                  ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Tap photo to change',
+                                          style: TextStyle(
+                                              fontSize: 12, color: Colors.grey.shade500),
+                                        ),
+                                        // *** NEW END ***
+
+                                        const SizedBox(height: 16),
+
                                         TextField(
                                           decoration: const InputDecoration(labelText: "Pet Name"),
                                           controller: TextEditingController(text: petName),
                                           onChanged: (val) => petName = val,
                                         ),
                                         const SizedBox(height: 10),
-
                                         TextField(
                                           decoration: const InputDecoration(labelText: "Size"),
                                           controller: TextEditingController(text: size),
                                           onChanged: (val) => size = val,
                                         ),
                                         const SizedBox(height: 10),
-
                                         TextField(
                                           decoration: const InputDecoration(labelText: "Age Group"),
                                           controller: TextEditingController(text: ageGroup),
                                           onChanged: (val) => ageGroup = val,
                                         ),
                                         const SizedBox(height: 10),
-
                                         TextField(
                                           decoration: const InputDecoration(labelText: "Coat Type"),
                                           controller: TextEditingController(text: coatType),
                                           onChanged: (val) => coatType = val,
                                         ),
                                         const SizedBox(height: 10),
-
                                         TextField(
                                           decoration: const InputDecoration(labelText: "Flat Faced"),
                                           controller: TextEditingController(text: isFlatFaced),
                                           onChanged: (val) => isFlatFaced = val,
                                         ),
                                         const SizedBox(height: 10),
-
                                         TextField(
                                           decoration: const InputDecoration(labelText: "Activity Level"),
                                           controller: TextEditingController(text: activityLevel),
@@ -339,8 +426,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
                   const Text(
                     "Account Info",
-                    style: TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
 
                   const SizedBox(height: 12),
@@ -356,7 +442,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
                       "Name: ${nameController.text}\n"
                       "Email: ${emailController.text}\n"
                       "Phone: ${phoneController.text}",
-                      
                       style: const TextStyle(color: Colors.grey),
                     ),
                   ),
