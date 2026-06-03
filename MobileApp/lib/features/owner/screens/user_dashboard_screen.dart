@@ -35,6 +35,8 @@ class _UserDashboardScreenState extends ConsumerState<UserDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     // ── Activate all three monitors globally ──────────────────────────────
     // These MUST be watched here (not inside individual feature screens)
     // so notifications and in-app alerts fire even when the user hasn't
@@ -56,12 +58,17 @@ class _UserDashboardScreenState extends ConsumerState<UserDashboardScreen> {
     return Scaffold(
       body: _screens[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.white,
+        backgroundColor:
+            Theme.of(context).bottomNavigationBarTheme.backgroundColor,
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color.fromARGB(255, 0, 150, 136),
-        unselectedItemColor: Colors.grey[600],
+        selectedItemColor:
+            Theme.of(context).bottomNavigationBarTheme.selectedItemColor ??
+                colorScheme.primary,
+        unselectedItemColor:
+            Theme.of(context).bottomNavigationBarTheme.unselectedItemColor ??
+                colorScheme.onSurfaceVariant,
         showUnselectedLabels: true,
         items: const [
           BottomNavigationBarItem(

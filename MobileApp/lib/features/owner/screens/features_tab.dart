@@ -63,8 +63,8 @@ class FeaturesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: const DashboardAppBar(title: 'RealTime Features'),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: const DashboardAppBar(title: 'Real T`ime Features'),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: ListView.builder(
@@ -109,7 +109,8 @@ class _FeatureCard extends StatelessWidget {
         title: feature.title,
         subtitle: feature.subtitle,
         trailing: feature.value,
-        colors: [Colors.blueGrey.shade50, Colors.blueGrey.shade100],
+        // Subtle off-white gradient matching provided design
+        colors: [Color(0xFFF4F7F8), Color(0xFFEFF3F4)],
       ),
     );
   }

@@ -41,8 +41,10 @@ class _LoadingScreenState extends State<LoadingScreen>
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: Colors.white, // ensures white background
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Center(
           child: Column(
@@ -57,27 +59,27 @@ class _LoadingScreenState extends State<LoadingScreen>
                     child: child,
                   );
                 },
-                child: const Icon(
+                child: Icon(
                   Icons.pets,
                   size: 100,
-                  color: Colors.teal, // matches devices tab theme
+                  color: colorScheme.primary,
                 ),
               ),
               const SizedBox(height: 40),
-              const Text(
+              Text(
                 "Pet-Guard Pro",
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                  color: colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 "Protection for Every Paw",
                 style: TextStyle(
                   fontSize: 18,
-                  color: Colors.black54,
+                  color: colorScheme.onSurfaceVariant,
                 ),
               ),
             ],

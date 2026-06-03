@@ -102,6 +102,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     const dashboardGreen = Color.fromARGB(255, 0, 150, 136);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
@@ -115,13 +116,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               Text(
                 'PetGuard Pro',
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineMedium,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      color: colorScheme.onSurface,
+                    ),
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Login to continue',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: Colors.black54),
+                style: TextStyle(
+                  fontSize: 16,
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 32),
               Autocomplete<String>(

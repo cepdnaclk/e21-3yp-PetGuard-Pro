@@ -6,4 +6,5 @@ class Routes {
   static const String healthDashboard = '/health-dashboard';
   static const String activityDashboard = '/activity-dashboard';
   static const String userProfile = '/user-profile';
+  static const String settings = '/settings';
 }

@@ -24,22 +24,25 @@ class DashboardAppBar extends ConsumerWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
     // Live count from alertsProvider — updates instantly when any feature
     // (location geofence breach or activity impact) adds a new alert.
     final alertCount = ref.watch(alertsProvider).length;
 
     return AppBar(
       title: Text(title),
-      backgroundColor: Colors.white,
-      foregroundColor: Colors.black,
-      elevation: 1,
+      backgroundColor:
+          Theme.of(context).appBarTheme.backgroundColor ?? colorScheme.surface,
+      foregroundColor: Theme.of(context).appBarTheme.foregroundColor ??
+          colorScheme.onSurface,
+      elevation: Theme.of(context).appBarTheme.elevation ?? 1,
       actions: [
         // ── Notifications bell with red badge ──────────────────────────────
         Stack(
           alignment: Alignment.center,
           children: [
             IconButton(
-              icon: const Icon(Icons.notifications, color: Colors.black),
+              icon: Icon(Icons.notifications, color: colorScheme.onSurface),
               onPressed: () {
                 Navigator.push(
                   context,
@@ -126,7 +129,7 @@ class DashboardAppBar extends ConsumerWidget implements PreferredSizeWidget {
         Navigator.pushNamed(context, Routes.userProfile);
         break;
       case 'settings':
-        _showInfoDialog(context, 'Settings', 'App settings go here.');
+        Navigator.pushNamed(context, Routes.settings);
         break;
       case 'help':
         _showInfoDialog(context, 'Help & Support', 'Help content goes here.');
@@ -163,10 +166,10 @@ class DashboardAppBar extends ConsumerWidget implements PreferredSizeWidget {
               // Clear all in-app alerts on logout so they don't
               // bleed into the next user's session
               ref.read(alertsProvider.notifier).clearAll();
-              
+
               final ownerRepository = OwnerRepository();
               await ownerRepository.signOut();
-              
+
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -229,18 +232,21 @@ class NotificationsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
     final alerts = ref.watch(alertsProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7FAFA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
           'Notifications',
           style: TextStyle(fontWeight: FontWeight.w700),
         ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 1,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor ??
+            colorScheme.surface,
+        foregroundColor: Theme.of(context).appBarTheme.foregroundColor ??
+            colorScheme.onSurface,
+        elevation: Theme.of(context).appBarTheme.elevation ?? 1,
         actions: [
           if (alerts.isNotEmpty)
             TextButton(
@@ -266,11 +272,15 @@ class NotificationsScreen extends ConsumerWidget {
                 final color = _colorForAlert(alert.title);
                 return Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withOpacity(0.08),
+                        color: Colors.black.withOpacity(
+                          Theme.of(context).brightness == Brightness.dark
+                              ? 0.3
+                              : 0.08,
+                        ),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -294,10 +304,10 @@ class NotificationsScreen extends ConsumerWidget {
                     ),
                     title: Text(
                       alert.title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
-                        color: Color(0xFF1A2E2C),
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     subtitle: Column(
@@ -306,9 +316,9 @@ class NotificationsScreen extends ConsumerWidget {
                         const SizedBox(height: 4),
                         Text(
                           alert.body,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
-                            color: Color(0xFF607D7B),
+                            color: colorScheme.onSurfaceVariant,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -393,20 +403,21 @@ class GradientCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: colors,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
-            blurRadius: 6,
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
@@ -421,22 +432,22 @@ class GradientCard extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    color: Colors.black,
+                  style: TextStyle(
+                    color: colorScheme.onSurface,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
                   subtitle,
-                  style: const TextStyle(color: Colors.black87),
+                  style: TextStyle(color: colorScheme.onSurfaceVariant),
                 ),
               ],
             ),
           ),
           Text(
             trailing,
-            style: const TextStyle(
-              color: Colors.black,
+            style: TextStyle(
+              color: colorScheme.onSurface,
               fontWeight: FontWeight.bold,
             ),
           ),

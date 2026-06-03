@@ -129,8 +129,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -144,7 +145,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Row(
@@ -161,13 +162,17 @@ class _UserProfilePageState extends State<UserProfilePage> {
                           children: [
                             Text(
                               nameController.text,
-                              style: const TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onSurface,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               emailController.text,
-                              style: const TextStyle(color: Colors.grey),
+                              style: TextStyle(
+                                  color: colorScheme.onSurfaceVariant),
                             ),
                           ],
                         )
@@ -180,7 +185,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   // EDIT PROFILE (EXPANDABLE)
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: ExpansionTile(
@@ -201,8 +206,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                         const SizedBox(height: 10),
                         TextField(
                           controller: phoneController,
-                          decoration:
-                              const InputDecoration(labelText: "Phone"),
+                          decoration: const InputDecoration(labelText: "Phone"),
                         ),
                         const SizedBox(height: 15),
                         ElevatedButton(
@@ -222,7 +226,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   // CHANGE PASSWORD (EXPANDABLE)
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: ExpansionTile(
@@ -234,24 +238,28 @@ class _UserProfilePageState extends State<UserProfilePage> {
                         TextField(
                           controller: oldPasswordController,
                           obscureText: true,
-                          decoration: const InputDecoration(labelText: "Old Password"),
+                          decoration:
+                              const InputDecoration(labelText: "Old Password"),
                         ),
                         const SizedBox(height: 10),
                         TextField(
                           controller: newPasswordController,
                           obscureText: true,
-                          decoration: const InputDecoration(labelText: "New Password"),
+                          decoration:
+                              const InputDecoration(labelText: "New Password"),
                         ),
                         const SizedBox(height: 10),
                         TextField(
                           controller: confirmPasswordController,
                           obscureText: true,
-                          decoration: const InputDecoration(labelText: "Confirm New Password"),
+                          decoration: const InputDecoration(
+                              labelText: "Confirm New Password"),
                         ),
                         const SizedBox(height: 15),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color.fromARGB(255, 0, 150, 136),
+                            backgroundColor:
+                                const Color.fromARGB(255, 0, 150, 136),
                           ),
                           onPressed: changePassword,
                           child: const Text("Update Password"),
@@ -263,9 +271,13 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   const SizedBox(height: 24),
                   const SizedBox(height: 24),
 
-                  const Text(
+                  Text(
                     "Your Pet",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
+                    ),
                   ),
 
                   const SizedBox(height: 12),
@@ -278,8 +290,10 @@ class _UserProfilePageState extends State<UserProfilePage> {
                             String size = petDoc['size'] ?? '';
                             String ageGroup = petDoc['ageGroup'] ?? '';
                             String coatType = petDoc['coatType'] ?? '';
-                            String isFlatFaced = petDoc['isFlatFaced']?.toString() ?? '';
-                            String activityLevel = petDoc['activityLevel'] ?? '';
+                            String isFlatFaced =
+                                petDoc['isFlatFaced']?.toString() ?? '';
+                            String activityLevel =
+                                petDoc['activityLevel'] ?? '';
                             String docId = petDoc['_docId'] ?? '';
                             // *** NEW ***
                             String? photoUrl = petDoc['photoUrl'];
@@ -287,14 +301,15 @@ class _UserProfilePageState extends State<UserProfilePage> {
                             return Container(
                               margin: const EdgeInsets.only(bottom: 12),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: Theme.of(context).cardColor,
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: ExpansionTile(
                                 // *** NEW *** Show pet photo as leading avatar
                                 leading: CircleAvatar(
                                   radius: 20,
-                                  backgroundColor: const Color.fromARGB(255, 0, 150, 136),
+                                  backgroundColor:
+                                      const Color.fromARGB(255, 0, 150, 136),
                                   backgroundImage: photoUrl != null
                                       ? NetworkImage(photoUrl)
                                       : null,
@@ -310,33 +325,42 @@ class _UserProfilePageState extends State<UserProfilePage> {
                                     padding: const EdgeInsets.all(16),
                                     child: Column(
                                       children: [
-
                                         // *** NEW START *** — Pet photo picker
                                         Center(
                                           child: GestureDetector(
-                                            onTap: _uploadingPhotoForPetId == docId
+                                            onTap: _uploadingPhotoForPetId ==
+                                                    docId
                                                 ? null
-                                                : () => _handlePetPhotoUpload(docId),
+                                                : () => _handlePetPhotoUpload(
+                                                    docId),
                                             child: Stack(
                                               alignment: Alignment.bottomRight,
                                               children: [
                                                 CircleAvatar(
                                                   radius: 50,
-                                                  backgroundColor: Colors.grey.shade200,
-                                                  backgroundImage: photoUrl != null
+                                                  backgroundColor:
+                                                      Theme.of(context)
+                                                          .colorScheme
+                                                          .surfaceVariant,
+                                                  backgroundImage: photoUrl !=
+                                                          null
                                                       ? NetworkImage(photoUrl)
                                                       : null,
                                                   child: photoUrl == null
                                                       ? Icon(Icons.pets,
                                                           size: 45,
-                                                          color: Colors.grey.shade400)
+                                                          color: colorScheme
+                                                              .onSurfaceVariant)
                                                       : null,
                                                 ),
-                                                if (_uploadingPhotoForPetId == docId)
+                                                if (_uploadingPhotoForPetId ==
+                                                    docId)
                                                   const Positioned.fill(
                                                     child: CircleAvatar(
-                                                      backgroundColor: Colors.black38,
-                                                      child: CircularProgressIndicator(
+                                                      backgroundColor:
+                                                          Colors.black38,
+                                                      child:
+                                                          CircularProgressIndicator(
                                                         color: Colors.white,
                                                         strokeWidth: 2.5,
                                                       ),
@@ -346,9 +370,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
                                                   CircleAvatar(
                                                     radius: 16,
                                                     backgroundColor:
-                                                        const Color.fromARGB(255, 0, 150, 136),
-                                                    child: const Icon(Icons.camera_alt,
-                                                        size: 16, color: Colors.white),
+                                                        const Color.fromARGB(
+                                                            255, 0, 150, 136),
+                                                    child: const Icon(
+                                                        Icons.camera_alt,
+                                                        size: 16,
+                                                        color: Colors.white),
                                                   ),
                                               ],
                                             ),
@@ -358,46 +385,61 @@ class _UserProfilePageState extends State<UserProfilePage> {
                                         Text(
                                           'Tap photo to change',
                                           style: TextStyle(
-                                              fontSize: 12, color: Colors.grey.shade500),
+                                            fontSize: 12,
+                                            color: colorScheme.onSurfaceVariant,
+                                          ),
                                         ),
                                         // *** NEW END ***
 
                                         const SizedBox(height: 16),
 
                                         TextField(
-                                          decoration: const InputDecoration(labelText: "Pet Name"),
-                                          controller: TextEditingController(text: petName),
+                                          decoration: const InputDecoration(
+                                              labelText: "Pet Name"),
+                                          controller: TextEditingController(
+                                              text: petName),
                                           onChanged: (val) => petName = val,
                                         ),
                                         const SizedBox(height: 10),
                                         TextField(
-                                          decoration: const InputDecoration(labelText: "Size"),
-                                          controller: TextEditingController(text: size),
+                                          decoration: const InputDecoration(
+                                              labelText: "Size"),
+                                          controller:
+                                              TextEditingController(text: size),
                                           onChanged: (val) => size = val,
                                         ),
                                         const SizedBox(height: 10),
                                         TextField(
-                                          decoration: const InputDecoration(labelText: "Age Group"),
-                                          controller: TextEditingController(text: ageGroup),
+                                          decoration: const InputDecoration(
+                                              labelText: "Age Group"),
+                                          controller: TextEditingController(
+                                              text: ageGroup),
                                           onChanged: (val) => ageGroup = val,
                                         ),
                                         const SizedBox(height: 10),
                                         TextField(
-                                          decoration: const InputDecoration(labelText: "Coat Type"),
-                                          controller: TextEditingController(text: coatType),
+                                          decoration: const InputDecoration(
+                                              labelText: "Coat Type"),
+                                          controller: TextEditingController(
+                                              text: coatType),
                                           onChanged: (val) => coatType = val,
                                         ),
                                         const SizedBox(height: 10),
                                         TextField(
-                                          decoration: const InputDecoration(labelText: "Flat Faced"),
-                                          controller: TextEditingController(text: isFlatFaced),
+                                          decoration: const InputDecoration(
+                                              labelText: "Flat Faced"),
+                                          controller: TextEditingController(
+                                              text: isFlatFaced),
                                           onChanged: (val) => isFlatFaced = val,
                                         ),
                                         const SizedBox(height: 10),
                                         TextField(
-                                          decoration: const InputDecoration(labelText: "Activity Level"),
-                                          controller: TextEditingController(text: activityLevel),
-                                          onChanged: (val) => activityLevel = val,
+                                          decoration: const InputDecoration(
+                                              labelText: "Activity Level"),
+                                          controller: TextEditingController(
+                                              text: activityLevel),
+                                          onChanged: (val) =>
+                                              activityLevel = val,
                                         ),
 
                                         const SizedBox(height: 15),
@@ -424,9 +466,13 @@ class _UserProfilePageState extends State<UserProfilePage> {
                           }).toList(),
                         ),
 
-                  const Text(
+                  Text(
                     "Account Info",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
+                    ),
                   ),
 
                   const SizedBox(height: 12),
@@ -435,14 +481,14 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
                       "Name: ${nameController.text}\n"
                       "Email: ${emailController.text}\n"
                       "Phone: ${phoneController.text}",
-                      style: const TextStyle(color: Colors.grey),
+                      style: TextStyle(color: colorScheme.onSurfaceVariant),
                     ),
                   ),
                 ],

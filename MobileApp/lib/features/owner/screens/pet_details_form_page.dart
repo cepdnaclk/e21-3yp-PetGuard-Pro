@@ -112,14 +112,15 @@ class _PetDetailsFormPageState extends State<PetDetailsFormPage> {
   // ─── UI BUILDER ──────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: _kSurface,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
           'Add Pet Details',
           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
         ),
-        backgroundColor: _kTeal,
+        backgroundColor: colorScheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -131,19 +132,20 @@ class _PetDetailsFormPageState extends State<PetDetailsFormPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Tell us about your dog',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w800,
-                    color: _kTextPrimary,
+                    color: colorScheme.onSurface,
                     letterSpacing: -0.5,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'This information helps us personalize your tracking experience.',
-                  style: TextStyle(color: _kTextSecond, fontSize: 14),
+                  style: TextStyle(
+                      color: colorScheme.onSurfaceVariant, fontSize: 14),
                 ),
                 const SizedBox(height: 32),
 
@@ -284,7 +286,8 @@ class _PetDetailsFormPageState extends State<PetDetailsFormPage> {
           value: type,
           child: Text(
             type,
-            style: const TextStyle(fontSize: 15, color: _kTextPrimary),
+            style: TextStyle(
+                fontSize: 15, color: Theme.of(context).colorScheme.onSurface),
             overflow: TextOverflow.ellipsis,
           ),
         );
@@ -295,23 +298,24 @@ class _PetDetailsFormPageState extends State<PetDetailsFormPage> {
 
   InputDecoration _inputDecoration(String label, IconData icon,
       {String? helperText}) {
+    final colorScheme = Theme.of(context).colorScheme;
     return InputDecoration(
       labelText: label,
-      labelStyle: const TextStyle(color: _kTextSecond),
+      labelStyle: TextStyle(color: colorScheme.onSurfaceVariant),
       helperText: helperText,
       helperMaxLines: 3,
-      helperStyle: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+      helperStyle: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12),
       prefixIcon: Icon(icon, color: _kTeal),
       filled: true,
-      fillColor: Colors.white,
+      fillColor: Theme.of(context).cardColor,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: Colors.grey.shade300),
+        borderSide: BorderSide(color: colorScheme.outlineVariant),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: Colors.grey.shade300),
+        borderSide: BorderSide(color: colorScheme.outlineVariant),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),

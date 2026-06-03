@@ -74,7 +74,8 @@ class _SignupScreenState extends State<SignupScreen> {
 
     setState(() => _isLoading = true);
     try {
-      final uid = await _authRepository.createUserWithEmailAndPassword(email, password);
+      final uid =
+          await _authRepository.createUserWithEmailAndPassword(email, password);
       await _authRepository.createUserDocument(
         uid: uid,
         fullName: fullName,
@@ -84,7 +85,8 @@ class _SignupScreenState extends State<SignupScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Account created successfully! Please wait until Admin approval."),
+            content: Text(
+                "Account created successfully! Please wait until Admin approval."),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
           ),
@@ -103,6 +105,7 @@ class _SignupScreenState extends State<SignupScreen> {
   // ── Build ─────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         title: const Text("Create Account"),
@@ -122,13 +125,17 @@ class _SignupScreenState extends State<SignupScreen> {
                 "Create your account",
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
                     ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 "Fill in the details below to sign up",
-                style: TextStyle(fontSize: 16, color: Colors.black54),
+                style: TextStyle(
+                  fontSize: 16,
+                  color: colorScheme.onSurfaceVariant,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
@@ -202,7 +209,8 @@ class _SignupScreenState extends State<SignupScreen> {
                         _isPasswordLengthValid
                             ? Icons.check_circle
                             : Icons.radio_button_unchecked,
-                        color: _isPasswordLengthValid ? Colors.green : Colors.grey,
+                        color:
+                            _isPasswordLengthValid ? Colors.green : Colors.grey,
                       ),
                       IconButton(
                         onPressed: () {
@@ -211,7 +219,9 @@ class _SignupScreenState extends State<SignupScreen> {
                           });
                         },
                         icon: Icon(
-                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                          _obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
                           color: Colors.grey,
                         ),
                       ),
