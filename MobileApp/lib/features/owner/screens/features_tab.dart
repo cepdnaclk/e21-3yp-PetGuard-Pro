@@ -110,7 +110,7 @@ class _FeatureCard extends StatelessWidget {
         subtitle: feature.subtitle,
         trailing: feature.value,
         // Fixed card color (solid) per design
-        colors: [const Color.fromARGB(255, 2, 119, 94)]
+        colors: [Color(0xFFB2DFDB)],
       ),
     );
   }

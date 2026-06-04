@@ -404,6 +404,7 @@ class GradientCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final cardTextColor = colors.first.computeLuminance() > 0.5 ? Colors.black : Colors.white;
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
       padding: const EdgeInsets.all(16),
@@ -437,13 +438,13 @@ class GradientCard extends StatelessWidget {
                 Text(
                   title,
                   style: TextStyle(
-                    color: colorScheme.onSurface,
+                    color: cardTextColor,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
                   subtitle,
-                  style: TextStyle(color: colorScheme.onSurfaceVariant),
+                  style: TextStyle(color: cardTextColor.withOpacity(0.75)),
                 ),
               ],
             ),
@@ -451,7 +452,7 @@ class GradientCard extends StatelessWidget {
           Text(
             trailing,
             style: TextStyle(
-              color: colorScheme.onSurface,
+              color: cardTextColor,
               fontWeight: FontWeight.bold,
             ),
           ),
