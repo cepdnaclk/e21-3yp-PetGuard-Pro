@@ -408,11 +408,15 @@ class GradientCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 6),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: colors,
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
+        // Use a solid color when a single color is provided, otherwise a gradient
+        color: colors.length == 1 ? colors[0] : null,
+        gradient: colors.length > 1
+            ? LinearGradient(
+                colors: colors,
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              )
+            : null,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(

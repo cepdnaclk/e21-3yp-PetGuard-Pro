@@ -103,14 +103,14 @@ class _FeatureCard extends StatelessWidget {
       child: GradientCard(
         leading: Icon(
           feature.icon,
-          color: const Color.fromARGB(255, 0, 150, 136),
+          color: Colors.black,
           size: 30,
         ),
         title: feature.title,
         subtitle: feature.subtitle,
         trailing: feature.value,
-        // Subtle off-white gradient matching provided design
-        colors: [Color(0xFFF4F7F8), Color(0xFFEFF3F4)],
+        // Fixed card color (solid) per design
+        colors: [const Color.fromARGB(255, 2, 119, 94)]
       ),
     );
   }
