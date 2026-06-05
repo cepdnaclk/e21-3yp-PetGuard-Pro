@@ -64,7 +64,7 @@ class FeaturesTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: const DashboardAppBar(title: 'Real T`ime Features'),
+      appBar: const DashboardAppBar(title: 'Real Time Features'),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: ListView.builder(
