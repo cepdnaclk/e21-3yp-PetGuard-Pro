@@ -55,7 +55,7 @@ class FeaturesTab extends StatelessWidget {
       title: 'Activity Monitoring',
       subtitle: 'Daily Pet Activity',
       value: 'Normal',
-      icon: Icons.directions_run,
+      icon: Icons.pets,
       destination: (_) => const ActivityDashboardScreen(),
     ),
   ];
