@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_database/firebase_database.dart';
+import '../../auth/services/pet_authorization_module.dart';
 import 'dashboard_widgets.dart';
 import 'pet_details_form_page.dart';
 import '../data/owner_repository.dart';
@@ -373,8 +375,22 @@ class _TypeChip extends StatelessWidget {
       );
 }
 
-class _StatusBanner extends StatelessWidget {
+class _StatusBanner extends StatefulWidget {
   const _StatusBanner();
+
+  @override
+  State<_StatusBanner> createState() => _StatusBannerState();
+}
+
+class _StatusBannerState extends State<_StatusBanner> {
+  late Future<String> _dbPathFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _dbPathFuture = PetAuthorizationModule.instance.getPetDatabasePath();
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -385,36 +401,119 @@ class _StatusBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: colorScheme.primary.withOpacity(0.3)),
       ),
+      child: FutureBuilder<String>(
+        future: _dbPathFuture,
+        builder: (context, pathSnapshot) {
+          final dbPath = pathSnapshot.data;
+
+          if (pathSnapshot.connectionState == ConnectionState.waiting ||
+              pathSnapshot.hasError ||
+              dbPath == null ||
+              dbPath.isEmpty) {
+            return _buildContentRow(context, null);
+          }
+
+          return StreamBuilder<DatabaseEvent>(
+            stream: FirebaseDatabase.instance.ref('$dbPath/battery/percentage').onValue,
+            builder: (context, batterySnapshot) {
+              int? batteryPercent;
+              if (batterySnapshot.hasData && batterySnapshot.data!.snapshot.value != null) {
+                final value = batterySnapshot.data!.snapshot.value;
+                if (value is num) {
+                  batteryPercent = value.toInt();
+                } else if (value is String) {
+                  batteryPercent = int.tryParse(value);
+                }
+              }
+              return _buildContentRow(context, batteryPercent);
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildContentRow(BuildContext context, int? batteryPercent) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: const BoxDecoration(color: _kTeal, shape: BoxShape.circle),
+          child: const Icon(
+            Icons.check_circle_outline_rounded,
+            color: Colors.white,
+            size: 22,
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'All systems normal',
+                style: TextStyle(
+                  color: colorScheme.onSurface,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                "Your pet's tracker is online and transmitting.",
+                style: TextStyle(
+                  color: colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (batteryPercent != null) ...[
+          const SizedBox(width: 12),
+          _buildBatteryIndicator(context, batteryPercent),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildBatteryIndicator(BuildContext context, int percent) {
+    final colorScheme = Theme.of(context).colorScheme;
+    IconData icon;
+    Color iconColor;
+
+    if (percent >= 80) {
+      icon = Icons.battery_full_rounded;
+      iconColor = Colors.green;
+    } else if (percent >= 50) {
+      icon = Icons.battery_4_bar_rounded;
+      iconColor = Colors.green;
+    } else if (percent >= 20) {
+      icon = Icons.battery_3_bar_rounded;
+      iconColor = Colors.orange;
+    } else {
+      icon = Icons.battery_alert_rounded;
+      iconColor = Colors.red;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: colorScheme.onSurface.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-              width: 42,
-              height: 42,
-              decoration:
-                  const BoxDecoration(color: _kTeal, shape: BoxShape.circle),
-              child: const Icon(Icons.check_circle_outline_rounded,
-                  color: Colors.white, size: 22)),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'All systems normal',
-                  style: TextStyle(
-                    color: colorScheme.onSurface,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  "Your pet's tracker is online and transmitting.",
-                  style: TextStyle(
-                    color: colorScheme.onSurfaceVariant,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
+          Icon(icon, color: iconColor, size: 18),
+          const SizedBox(width: 4),
+          Text(
+            '$percent%',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: colorScheme.onSurface,
             ),
           ),
         ],
