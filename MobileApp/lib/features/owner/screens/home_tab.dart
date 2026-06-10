@@ -440,10 +440,13 @@ class _StatusBannerState extends State<_StatusBanner> {
         Container(
           width: 42,
           height: 42,
-          decoration: const BoxDecoration(color: _kTeal, shape: BoxShape.circle),
+          decoration: BoxDecoration(
+            color: _kTeal.withOpacity(0.12),
+            shape: BoxShape.circle,
+          ),
           child: const Icon(
-            Icons.check_circle_outline_rounded,
-            color: Colors.white,
+            Icons.check_circle_rounded,
+            color: _kTeal,
             size: 22,
           ),
         ),
@@ -480,39 +483,94 @@ class _StatusBannerState extends State<_StatusBanner> {
 
   Widget _buildBatteryIndicator(BuildContext context, int percent) {
     final colorScheme = Theme.of(context).colorScheme;
-    IconData icon;
-    Color iconColor;
+    final clampedPercent = percent.clamp(0, 100);
+    Color batteryColor;
 
-    if (percent >= 80) {
-      icon = Icons.battery_full_rounded;
-      iconColor = Colors.green;
-    } else if (percent >= 50) {
-      icon = Icons.battery_4_bar_rounded;
-      iconColor = Colors.green;
-    } else if (percent >= 20) {
-      icon = Icons.battery_3_bar_rounded;
-      iconColor = Colors.orange;
+    if (clampedPercent >= 80) {
+      batteryColor = const Color(0xFF10B981); // Emerald Green
+    } else if (clampedPercent >= 50) {
+      batteryColor = const Color(0xFF10B981); // Emerald Green
+    } else if (clampedPercent >= 20) {
+      batteryColor = const Color(0xFFF59E0B); // Amber/Orange
     } else {
-      icon = Icons.battery_alert_rounded;
-      iconColor = Colors.red;
+      batteryColor = const Color(0xFFEF4444); // Crimson Red
+    }
+
+    // Border and padding details for calculation:
+    // Outer width: 24, height: 13
+    // Border width: 1.2 on each side
+    // Padding: 1.2 on each side
+    // Available width for inner fill = 24 - 2.4 - 2.4 = 19.2
+    final double maxFillWidth = 24.0 - 4.8;
+    double fillWidth = maxFillWidth * (clampedPercent / 100);
+    if (clampedPercent > 0 && fillWidth < 2.0) {
+      fillWidth = 2.0; // Ensure at least a tiny sliver is visible if there is some charge
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: colorScheme.onSurface.withOpacity(0.06),
-        borderRadius: BorderRadius.circular(8),
+        color: colorScheme.onSurface.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: colorScheme.onSurface.withOpacity(0.08),
+          width: 1,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: iconColor, size: 18),
-          const SizedBox(width: 4),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 24,
+                height: 13,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(3.5),
+                  border: Border.all(
+                    color: colorScheme.onSurface.withOpacity(0.35),
+                    width: 1.2,
+                  ),
+                ),
+                padding: const EdgeInsets.all(1.2),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    width: fillWidth,
+                    decoration: BoxDecoration(
+                      color: batteryColor,
+                      borderRadius: BorderRadius.circular(1.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: batteryColor.withOpacity(0.35),
+                          blurRadius: 2,
+                          spreadRadius: 0.5,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Container(
+                width: 1.5,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: colorScheme.onSurface.withOpacity(0.35),
+                  borderRadius: const BorderRadius.only(
+                    topRight: Radius.circular(1.2),
+                    bottomRight: Radius.circular(1.2),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 8),
           Text(
-            '$percent%',
+            '$clampedPercent%',
             style: TextStyle(
               fontSize: 12,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w800,
               color: colorScheme.onSurface,
             ),
           ),
