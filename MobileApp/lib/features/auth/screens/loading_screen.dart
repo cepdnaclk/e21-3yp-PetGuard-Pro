@@ -1,17 +1,26 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import '../../../core/constants/routes.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class LoadingScreen extends StatefulWidget {
+import '../../../core/constants/routes.dart';
+import '../../admin/screens/admin_dashboard_screen.dart';
+import '../../owner/activity/services/activity_notification_service.dart';
+import '../../owner/location/providers/location_provider.dart';
+import '../../owner/screens/user_dashboard_screen.dart';
+import '../data/auth_repository.dart';
+
+class LoadingScreen extends ConsumerStatefulWidget {
   const LoadingScreen({super.key});
 
   @override
-  State<LoadingScreen> createState() => _LoadingScreenState();
+  ConsumerState<LoadingScreen> createState() => _LoadingScreenState();
 }
 
-class _LoadingScreenState extends State<LoadingScreen>
+class _LoadingScreenState extends ConsumerState<LoadingScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
+  final AuthRepository _authRepository = AuthRepository();
 
   @override
   void initState() {
@@ -27,10 +36,50 @@ class _LoadingScreenState extends State<LoadingScreen>
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
 
-    // Automatically navigate to LoginScreen after 3 seconds
-    Future.delayed(const Duration(seconds: 3), () {
+    _resolveStartDestination();
+  }
+
+  Future<void> _resolveStartDestination() async {
+    await Future.delayed(const Duration(seconds: 3));
+
+    if (!mounted) return;
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
       Navigator.pushReplacementNamed(context, Routes.login);
-    });
+      return;
+    }
+
+    final role = await _authRepository.determineUserRole(user.uid);
+
+    if (!mounted) return;
+
+    if (role == 'admin') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+      );
+      return;
+    }
+
+    if (role == 'active') {
+      ref.invalidate(locationPetIdProvider);
+      await ActivityNotificationService().refreshPetListener();
+
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const UserDashboardScreen()),
+      );
+      return;
+    }
+
+    await FirebaseAuth.instance.signOut();
+
+    if (!mounted) return;
+
+    Navigator.pushReplacementNamed(context, Routes.login);
   }
 
   @override
