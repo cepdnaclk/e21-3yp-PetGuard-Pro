@@ -193,7 +193,7 @@ class _LiveLayout extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // ── 1. Activity hero ───────────────────────────────────────────────
-          Expanded(flex: 5, child: _ActivityHeroCard(activity: activity)),
+          Expanded(flex: 4, child: _ActivityHeroCard(activity: activity)),
           const SizedBox(height: 14),
 
           // ── 2. Steps + Active Minutes ──────────────────────────────────────
@@ -310,7 +310,7 @@ class _ActivityHeroCard extends StatelessWidget {
                   label,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 40,
+                    fontSize: 30,
                     fontWeight: FontWeight.w900,
                     height: 1.1,
                     letterSpacing: 0.5,
