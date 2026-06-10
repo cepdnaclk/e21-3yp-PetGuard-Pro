@@ -186,7 +186,7 @@ class _Greeting extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Hello, $userName 👋',
+          'Welcome back',
           style: TextStyle(
             fontSize: 26,
             fontWeight: FontWeight.w800,
