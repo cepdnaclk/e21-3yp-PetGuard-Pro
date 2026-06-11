@@ -2,7 +2,8 @@ import 'dart:async';
 import 'dart:io' show File;
 import 'dart:convert';
 import 'dart:math' as math;
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show Factory, kIsWeb;
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -328,7 +329,22 @@ class _LocationHistoryScreenState extends ConsumerState<LocationHistoryScreen>
                 },
                 mapType: _isHybrid ? MapType.hybrid : MapType.normal,
                 myLocationButtonEnabled: false,
-                zoomControlsEnabled: true,
+                zoomControlsEnabled:
+                    false, // Hide buttons since we have gestures
+
+                // ✅ GESTURE RECOGNIZERS - Enable pinch/pan/tilt/rotate
+                gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+                  Factory<OneSequenceGestureRecognizer>(
+                    () => EagerGestureRecognizer(),
+                  ),
+                }.cast<Factory<OneSequenceGestureRecognizer>>(),
+
+                // ✅ INDIVIDUAL GESTURE CONTROLS
+                zoomGesturesEnabled: true, // Pinch to zoom
+                scrollGesturesEnabled: true, // Pan/drag map
+                tiltGesturesEnabled: true, // Tilt with two-finger drag
+                rotateGesturesEnabled: true, // Rotate with two-finger drag
+
                 markers: {
                   Marker(
                     markerId: const MarkerId('latest'),
@@ -752,7 +768,21 @@ class _LocationHistoryScreenState extends ConsumerState<LocationHistoryScreen>
           },
           mapType: _isHybrid ? MapType.hybrid : MapType.normal,
           myLocationButtonEnabled: false,
-          zoomControlsEnabled: true,
+          zoomControlsEnabled: false, // Hide buttons since we have gestures
+
+          // ✅ GESTURE RECOGNIZERS - Enable pinch/pan/tilt/rotate
+          gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+            Factory<OneSequenceGestureRecognizer>(
+              () => EagerGestureRecognizer(),
+            ),
+          }.cast<Factory<OneSequenceGestureRecognizer>>(),
+
+          // ✅ INDIVIDUAL GESTURE CONTROLS
+          zoomGesturesEnabled: true, // Pinch to zoom
+          scrollGesturesEnabled: true, // Pan/drag map
+          tiltGesturesEnabled: true, // Tilt with two-finger drag
+          rotateGesturesEnabled: true, // Rotate with two-finger drag
+
           circles: cells,
         ),
         // Legend

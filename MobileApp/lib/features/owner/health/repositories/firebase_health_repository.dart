@@ -29,16 +29,28 @@ class FirebaseHealthRepository implements HealthRepository {
     });
   }
 
-  @override
-  Future<List<HealthVitals>> getHealthHistoryForDay(String petId, DateTime day) async {
-    final startKey = '${day.toIso8601String().substring(0, 10)}T00-00-00';
-    final endKey   = '${day.toIso8601String().substring(0, 10)}T23-59-59';
+  // ── Helper: epoch ms range for a given day ─────────────────────────────────
+  // Firebase push-ID keys (e.g. -OPxyz123) can't be queried by ISO date string.
+  // The firmware now stores timestamp as a plain Unix ms integer, so we query
+  // by the child field value using orderByChild('timestamp') + epoch ms range.
+  //
+  // Requires this index in Firebase database rules:
+  //   "health_history": { ".indexOn": ["timestamp"] }
 
+  static int _dayStartMs(DateTime day) =>
+      DateTime(day.year, day.month, day.day).millisecondsSinceEpoch;
+
+  static int _dayEndMs(DateTime day) =>
+      DateTime(day.year, day.month, day.day, 23, 59, 59).millisecondsSinceEpoch;
+
+  @override
+  Future<List<HealthVitals>> getHealthHistoryForDay(
+      String petId, DateTime day) async {
     final snapshot = await _database
         .ref('pets/$petId/health_history')
-        .orderByKey()
-        .startAt(startKey)
-        .endAt(endKey)
+        .orderByChild('timestamp')
+        .startAt(_dayStartMs(day).toDouble())
+        .endAt(_dayEndMs(day).toDouble())
         .get();
 
     if (snapshot.value == null) return [];
@@ -51,25 +63,23 @@ class FirebaseHealthRepository implements HealthRepository {
   }
 
   @override
-  Stream<List<HealthVitals>> getHealthHistoryStream(String petId, DateTime day) {
-    final startKey = '${day.toIso8601String().substring(0, 10)}T00-00-00';
-    final endKey   = '${day.toIso8601String().substring(0, 10)}T23-59-59';
-
+  Stream<List<HealthVitals>> getHealthHistoryStream(
+      String petId, DateTime day) {
     return _database
         .ref('pets/$petId/health_history')
-        .orderByKey()
-        .startAt(startKey)
-        .endAt(endKey)
+        .orderByChild('timestamp')
+        .startAt(_dayStartMs(day).toDouble())
+        .endAt(_dayEndMs(day).toDouble())
         .onValue
         .map((event) {
-          if (event.snapshot.value == null) return <HealthVitals>[];
+      if (event.snapshot.value == null) return <HealthVitals>[];
 
-          final Map<dynamic, dynamic> raw = event.snapshot.value as Map;
-          final list = raw.values
-              .map((e) => HealthVitals.fromJson(Map<String, dynamic>.from(e as Map)))
-              .toList()
-            ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
-          return list;
-        });
+      final Map<dynamic, dynamic> raw = event.snapshot.value as Map;
+      return raw.values
+          .map(
+              (e) => HealthVitals.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList()
+        ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    });
   }
 }

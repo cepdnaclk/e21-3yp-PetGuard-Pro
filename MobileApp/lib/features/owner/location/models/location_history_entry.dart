@@ -48,8 +48,10 @@ class LocationHistoryEntry {
     final parsedTime = _parseTimestamp(json['timestamp']);
 
     return LocationHistoryEntry(
-      id: json['id'] as String? ??
-          DateTime.now().millisecondsSinceEpoch.toString(),
+      // Use the entry's own timestamp as fallback ID so entries from Firebase
+      // (which have no 'id' field) get a stable, deterministic ID instead of
+      // a random DateTime.now() value that changes on every parse.
+      id: json['id'] as String? ?? parsedTime.millisecondsSinceEpoch.toString(),
       latitude: (json['latitude'] as num).toDouble(),
       longitude: (json['longitude'] as num).toDouble(),
       timestamp: parsedTime,
@@ -71,12 +73,16 @@ class LocationHistoryEntry {
       final lngD = (lng as num).toDouble();
       if (latD == 0.0 && lngD == 0.0) return null;
 
+      final parsedTime = _parseTimestamp(json['timestamp']);
+
       return LocationHistoryEntry(
+        // Same fix as fromJson — use entry's own timestamp as fallback ID
+        // so Firebase entries (no 'id' field) get a stable, deterministic ID.
         id: json['id'] as String? ??
-            DateTime.now().millisecondsSinceEpoch.toString(),
+            parsedTime.millisecondsSinceEpoch.toString(),
         latitude: latD,
         longitude: lngD,
-        timestamp: _parseTimestamp(json['timestamp']),
+        timestamp: parsedTime,
         accuracy: json['accuracy'] != null
             ? (json['accuracy'] as num).toDouble()
             : null,

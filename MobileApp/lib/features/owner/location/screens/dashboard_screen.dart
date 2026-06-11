@@ -822,16 +822,35 @@ class _LocationDashboardState extends ConsumerState<LocationDashboard>
   Future<void> _triggerFindMyPet(BuildContext context) async {
     final cloudSvc = ref.read(cloudServiceProvider);
     try {
+      // ✅ Step 1: Send true to activate buzzer
       await cloudSvc.sendBuzzerCommand(true);
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('🔔 Buzzer triggered on collar!'),
-          backgroundColor: Color(0xFF00897B)));
+        content: Text('🔔 Buzzer triggered on collar!'),
+        backgroundColor: Color(0xFF00897B),
+        duration: Duration(seconds: 10), // Show for 10 seconds
+      ));
     } catch (_) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Could not reach collar — is it online?'),
           backgroundColor: Colors.red));
+      return; // Don't continue if initial command failed
+    }
+
+    // ✅ Step 2: Wait 10 seconds
+    await Future.delayed(const Duration(seconds: 10));
+    if (!mounted) return;
+
+    // ✅ Step 3: Send false to turn off buzzer
+    try {
+      await cloudSvc.sendBuzzerCommand(false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      }
+    } catch (_) {
+      // Non-critical — collar's 2-minute watchdog will stop it
+      debugPrint('Could not send buzzer stop command');
     }
   }
 

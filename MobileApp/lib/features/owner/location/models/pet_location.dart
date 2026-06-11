@@ -34,13 +34,32 @@ class PetLocation {
   }
 
   factory PetLocation.fromJson(Map<String, dynamic> json) {
+    // Handle all timestamp formats:
+    // 1. int  — Firebase server timestamp (Unix ms) ✅
+    // 2. String — ISO string from ESP32 firmware
+    DateTime parsedTime;
+    final rawTs = json['timestamp'];
+
+    if (rawTs is int) {
+      // Firebase server timestamp — most accurate ✅
+      parsedTime = DateTime.fromMillisecondsSinceEpoch(rawTs).toLocal();
+    } else if (rawTs is String) {
+      try {
+        parsedTime = DateTime.parse(rawTs).toLocal();
+      } catch (_) {
+        parsedTime = DateTime.now();
+      }
+    } else {
+      parsedTime = DateTime.now();
+    }
+
     return PetLocation(
       latitude: (json['latitude'] as num).toDouble(),
       longitude: (json['longitude'] as num).toDouble(),
       accuracy: json['accuracy'] != null
           ? (json['accuracy'] as num).toDouble()
           : null,
-      timestamp: DateTime.parse(json['timestamp']),
+      timestamp: parsedTime,
       heading:
           json['heading'] != null ? (json['heading'] as num).toDouble() : null,
     );
