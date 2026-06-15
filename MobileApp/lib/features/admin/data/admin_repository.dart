@@ -15,6 +15,11 @@ class AdminRepository {
         .where('status', isEqualTo: 'Pending')
         .get();
 
+    final verifiedUsersCount = usersSnap.docs.where((doc) {
+      final status = (doc.data()['status'] ?? 'Pending').toString();
+      return status != 'not_varified';
+    }).length;
+
     final devices = devicesSnap.docs;
     double totalConnectivity = 0;
     for (var d in devices) {
@@ -25,7 +30,7 @@ class AdminRepository {
         devices.isNotEmpty ? "${(totalConnectivity / devices.length).round()}%" : "0%";
 
     return {
-      'users': usersSnap.size.toString(),
+      'users': verifiedUsersCount.toString(),
       'devices': devicesSnap.size.toString(),
       'alerts': alertsSnap.size.toString(),
       'connectivity': connectivity,
@@ -133,7 +138,8 @@ class AdminRepository {
   String getStatusColor(String status) {
     if (status == 'Active') return 'green';
     if (status == 'Pending') return 'orange';
-    if (status == 'Inactive') return 'red';
+    if (status == 'Inactive') return 'orange';
+    if (status == 'Blocked') return 'red';
     return 'grey';
   }
 }

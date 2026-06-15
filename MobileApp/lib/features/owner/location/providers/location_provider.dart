@@ -53,9 +53,13 @@ final cloudServiceProvider = Provider<CloudService>((ref) {
 // (locationStreamProvider, history, recent) automatically
 // restart with the correct new pet ID.
 // ─────────────────────────────────────────────────────────────
-final locationPetIdProvider = FutureProvider<String>((ref) async {
+final locationPetIdProvider = FutureProvider<String?>((ref) async {
   final cloudService = ref.watch(cloudServiceProvider);
-  return await cloudService.getPetId();
+  try {
+    return await cloudService.getPetId();
+  } catch (_) {
+    return null;
+  }
 });
 
 // ─────────────────────────────────────────────────────────────
@@ -68,6 +72,7 @@ final locationPetIdProvider = FutureProvider<String>((ref) async {
 // ─────────────────────────────────────────────────────────────
 final locationStreamProvider = StreamProvider<PetLocation>((ref) async* {
   final petId = await ref.watch(locationPetIdProvider.future);
+  if (petId == null) return;
   final cloudService = ref.watch(cloudServiceProvider);
   yield* cloudService.getLocationStreamForPet(petId);
 });
@@ -261,6 +266,10 @@ final locationHistoryProvider =
 
   // Wait for the correct petId before starting the history loop
   final petId = await ref.watch(locationPetIdProvider.future);
+  if (petId == null) {
+    yield [];
+    return;
+  }
 
   await historyService.initialize();
 
@@ -299,6 +308,10 @@ final recentLocationsProvider =
 
   // Wait for the correct petId before starting the loop
   final petId = await ref.watch(locationPetIdProvider.future);
+  if (petId == null) {
+    yield [];
+    return;
+  }
 
   await historyService.initialize();
 

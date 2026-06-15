@@ -58,12 +58,25 @@ class ActivityNotificationService {
 
   // Uses PetAuthorizationModule — single source of truth,
   // same pattern as location/services/cloud_service.dart.
-  Future<String> _getPetId() async {
-    return await PetAuthorizationModule.instance.getSelectedPetId();
+  Future<String?> _getPetId() async {
+    try {
+      return await PetAuthorizationModule.instance.getSelectedPetId();
+    } catch (e) {
+      debugPrint('ActivityNotificationService: No selected pet ID found ($e)');
+      return null;
+    }
   }
 
   Future<void> _listenForImpacts() async {
     final petId = await _getPetId();
+
+    if (petId == null) {
+      debugPrint('ActivityNotificationService: Cannot listen for impacts (no pet ID assigned).');
+      await _impactSubscription?.cancel();
+      _impactSubscription = null;
+      _currentPetId = null;
+      return;
+    }
 
     // If already listening to this exact pet, do nothing.
     // This prevents duplicate subscriptions on hot reload / repeated calls.

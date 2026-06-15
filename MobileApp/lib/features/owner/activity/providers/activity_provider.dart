@@ -157,16 +157,21 @@ import '../../location/providers/alerts_provider.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 // Get current user's selectedPetId via PetAuthorizationModule
 // ─────────────────────────────────────────────────────────────────────────────
-final selectedPetIdProvider = FutureProvider<String>((ref) async {
-  return await PetAuthorizationModule.instance.getSelectedPetId();
+final selectedPetIdProvider = FutureProvider<String?>((ref) async {
+  try {
+    return await PetAuthorizationModule.instance.getSelectedPetId();
+  } catch (e) {
+    return null;
+  }
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Repository — waits for the real petId before being created.
 // ─────────────────────────────────────────────────────────────────────────────
 final _activityRepoProvider =
-    FutureProvider<FirebaseActivityRepository>((ref) async {
+    FutureProvider<FirebaseActivityRepository?>((ref) async {
   final petId = await ref.watch(selectedPetIdProvider.future);
+  if (petId == null) return null;
   return FirebaseActivityRepository(petId: petId);
 });
 
@@ -175,12 +180,20 @@ final _activityRepoProvider =
 // ─────────────────────────────────────────────────────────────────────────────
 final currentActivityProvider = StreamProvider<ActivityData?>((ref) async* {
   final repo = await ref.watch(_activityRepoProvider.future);
+  if (repo == null) {
+    yield null;
+    return;
+  }
   yield* repo.getCurrentActivityStream();
 });
 
 final activityHistoryProvider =
     StreamProvider<List<ActivityData>>((ref) async* {
   final repo = await ref.watch(_activityRepoProvider.future);
+  if (repo == null) {
+    yield [];
+    return;
+  }
   // limit: 500 ensures a full day of entries is always covered
   yield* repo.getActivityHistoryStream(limit: 500);
 });
@@ -188,12 +201,20 @@ final activityHistoryProvider =
 final dailySummariesProvider =
     StreamProvider<List<ActivitySummary>>((ref) async* {
   final repo = await ref.watch(_activityRepoProvider.future);
+  if (repo == null) {
+    yield [];
+    return;
+  }
   ref.watch(currentActivityProvider);
   yield* repo.getDailySummariesStream(days: 7);
 });
 
 final impactAlertsProvider = StreamProvider<List<ActivityData>>((ref) async* {
   final repo = await ref.watch(_activityRepoProvider.future);
+  if (repo == null) {
+    yield [];
+    return;
+  }
   yield* repo.getImpactAlertsStream(limit: 20);
 });
 

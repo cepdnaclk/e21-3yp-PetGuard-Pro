@@ -16,9 +16,9 @@ class AuthRepository {
     await _auth.signOut();
   }
 
-  // Create user and return UID (non-Firebase type)
   Future<String> createUserWithEmailAndPassword(String email, String password) async {
     final credential = await _auth.createUserWithEmailAndPassword(email: email, password: password);
+    await credential.user?.sendEmailVerification();
     return credential.user!.uid;
   }
 
@@ -32,7 +32,7 @@ class AuthRepository {
       "name": fullName,
       "email": email,
       "phone": phone,
-      "status": "Pending",
+      "status": "not_varified",
       "role": "user",
       "selectedPetId": null,
       "createdAt": FieldValue.serverTimestamp(),
@@ -67,11 +67,17 @@ class AuthRepository {
       return 'not_found';
     }
 
-    final status = userDoc['status'] as String? ?? '';
-    if (status == 'Pending') {
+    final status = (userDoc['status'] as String? ?? '').toLowerCase().trim();
+    if (status == 'pending') {
       return 'pending';
-    } else if (status == 'Inactive') {
+    } else if (status == 'inactive') {
       return 'inactive';
+    } else if (status == 'blocked') {
+      return 'blocked';
+    } else if (status == 'not_varified') {
+      return 'not_varified';
+    } else if (status == 'active' || status == 'approved') {
+      return 'active';
     } else {
       return 'active';
     }
@@ -115,6 +121,10 @@ class AuthRepository {
         password.isEmpty ||
         confirmPassword.isEmpty) {
       return "Please fill in all fields.";
+    }
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(email)) {
+      return "Please enter a valid email address.";
     }
     if (password.length < 8) {
       return "Password must be at least 8 characters.";
@@ -186,6 +196,31 @@ class AuthRepository {
       // 2. Sign in and get UID
       final uid = await signInWithEmailAndPassword(email, password);
 
+      // Reload user from Firebase to get the latest emailVerified status
+      final firebaseUser = _auth.currentUser;
+      if (firebaseUser != null) {
+        await firebaseUser.reload();
+      }
+
+      // Check user document status
+      final userDoc = await getUserDocument(uid);
+      if (userDoc != null) {
+        final status = userDoc['status'] as String? ?? '';
+        if (status == 'not_varified') {
+          final reloadedUser = _auth.currentUser;
+          if (reloadedUser != null && reloadedUser.emailVerified) {
+            // User clicked the email verification link! Update status to 'Inactive' in Firestore
+            await _firestore.collection('users').doc(uid).update({'status': 'Inactive'});
+            await signOut();
+            return LoginResult(errorMessage: 'Email verified. Please wait for admin approval.');
+          } else {
+            // User has not verified their email address yet
+            await signOut();
+            return LoginResult(errorMessage: 'Please verify your email first. A verification link has been sent to your email.');
+          }
+        }
+      }
+
       // 3. Determine user role/status
       final userRole = await determineUserRole(uid);
 
@@ -207,7 +242,17 @@ class AuthRepository {
 
       if (userRole == 'inactive') {
         await signOut();
+        return LoginResult(errorMessage: 'Account waiting for admin approval');
+      }
+
+      if (userRole == 'blocked') {
+        await signOut();
         return LoginResult(errorMessage: 'Account blocked');
+      }
+
+      if (userRole == 'not_varified') {
+        await signOut();
+        return LoginResult(errorMessage: 'Please verify your email first.');
       }
 
       // userRole == 'active' → proceed to user dashboard

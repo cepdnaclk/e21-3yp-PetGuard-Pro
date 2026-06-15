@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../data/auth_repository.dart';
 import '../../../core/widgets/custom_button.dart';
+import 'verification_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -84,15 +85,19 @@ class _SignupScreenState extends State<SignupScreen> {
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-                "Account created successfully! Please wait until Admin approval."),
+                "Account created successfully! Please verify your email using the link sent to $email before logging in."),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
           ),
         );
-        await _authRepository.signOut();
-        Navigator.pop(context);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => VerificationScreen(email: email),
+          ),
+        );
       }
     } catch (e) {
       final errorMessage = _authRepository.mapSignupError(e);
