@@ -168,7 +168,8 @@ class _LiveLayout extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // ── 1. Activity hero ───────────────────────────────────────────────
-          Expanded(flex: 4, child: _ActivityHeroCard(activity: activity)),
+          //Expanded(flex: 4, child: _ActivityHeroCard(activity: activity)),
+          _ActivityHeroCard(activity: activity),
           const SizedBox(height: 14),
 
           // ── 2. Steps + Active Minutes ──────────────────────────────────────
@@ -211,7 +212,7 @@ class _LiveLayout extends StatelessWidget {
 }
 
 // ── Hero card — emoji watermark + big text, NO icon bubble ───────────────────
-
+/*
 class _ActivityHeroCard extends StatelessWidget {
   final ActivityData activity;
   const _ActivityHeroCard({required this.activity});
@@ -316,6 +317,138 @@ class _ActivityHeroCard extends StatelessWidget {
           ),
     );     
     
+  }
+}
+*/
+// REPLACE _ActivityHeroCard entirely:
+
+class _ActivityHeroCard extends StatelessWidget {
+  final ActivityData activity;
+  const _ActivityHeroCard({required this.activity});
+
+  static const List<Color> _fixedGradient = [
+    Color(0xFF10B5A7),
+    Color(0xFF009688),
+  ];
+
+  static const _levelLabels = ['Resting', 'Light', 'Moderate', 'Active'];
+
+  @override
+  Widget build(BuildContext context) {
+    final label = _activityTitle(activity.activityType);
+    final level = activity.activityLevel.clamp(0, 3);
+    final now   = activity.timestamp;
+
+    final dateStr =
+        '${now.day}/${now.month}/${now.year}';
+    final timeStr =
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: _fixedGradient,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: _PgDecor.xl,
+        boxShadow: [
+          BoxShadow(
+            color: _PgColors.primary.withOpacity(0.22),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+
+          // ── Top row: label + date/time ──────────────────────────────
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Current Activity',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.80),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    timeStr,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  Text(
+                    dateStr,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.70),
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 14),
+
+          // ── Activity name + level dots ──────────────────────────────
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.3,
+                ),
+              ),
+              const Spacer(),
+              // 4 level dots
+              Row(
+                children: List.generate(4, (i) => Container(
+                  margin: const EdgeInsets.only(left: 5),
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: i <= level
+                        ? Colors.white
+                        : Colors.white.withOpacity(0.25),
+                  ),
+                )),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 6),
+
+          // ── Level label ─────────────────────────────────────────────
+          Text(
+            'Level ${level + 1} · ${_levelLabels[level]}',
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.75),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
