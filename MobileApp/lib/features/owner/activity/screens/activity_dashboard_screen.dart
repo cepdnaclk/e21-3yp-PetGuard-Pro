@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/activity_provider.dart';
 import '../models/activity_data.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 class ActivityDashboardScreen extends ConsumerStatefulWidget {
   const ActivityDashboardScreen({super.key});
@@ -23,7 +24,7 @@ class _ActivityDashboardScreenState
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
@@ -50,8 +51,7 @@ class _ActivityDashboardScreenState
           labelStyle: const TextStyle(fontWeight: FontWeight.w700),
           tabs: const [
             Tab(icon: Icon(Icons.favorite_border), text: 'Live'),
-            Tab(icon: Icon(Icons.bar_chart_rounded), text: 'Summary'),
-            Tab(icon: Icon(Icons.history), text: 'History'),
+            Tab(icon: Icon(Icons.bar_chart_rounded), text: 'History'),
           ],
         ),
       ),
@@ -59,7 +59,6 @@ class _ActivityDashboardScreenState
         controller: _tabController,
         children: const [
           _LiveTab(),
-          _SummaryTab(),
           _HistoryTab(),
         ],
       ),
@@ -115,30 +114,6 @@ class _PgDecor {
 // No human icons used anywhere.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Returns a pet-appropriate emoji for the hero card watermark.
-String _activityEmoji(String type) {
-  switch (type.toLowerCase()) {
-    case 'walking':  return '🐾';
-    case 'running':  return '💨';
-    case 'resting':  return '🌙';
-    case 'playing':  return '🦴';
-    case 'impact':   return '⚠️';
-    default:         return '🐾';
-  }
-}
-
-/// Returns a neutral (non-human) Material icon for each activity.
-/// Used only in history tiles and stat strips — NOT in the hero card.
-IconData _activityIcon(String type) {
-  switch (type.toLowerCase()) {
-    case 'walking':  return Icons.pets_rounded;          // paw print
-    case 'running':  return Icons.bolt_rounded;          // energy / speed
-    case 'resting':  return Icons.bedtime_outlined;      // moon / sleep
-    case 'playing':  return Icons.sports_tennis_rounded; // ball / play
-    case 'impact':   return Icons.warning_amber_rounded; // alert
-    default:         return Icons.monitor_heart_outlined;
-  }
-}
 
 String _activityTitle(String type) {
   if (type.isEmpty) return 'Unknown';
@@ -495,305 +470,558 @@ class _ImpactAlertCard extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TAB 2 · SUMMARY
-// Reads from todayAsSummaryListProvider which aggregates today's history
-// entries (midnight → now) directly from Firebase history node.
-// This fixes the 0-step issue caused by the missing daily_summary node.
-// ─────────────────────────────────────────────────────────────────────────────
 
-class _SummaryTab extends ConsumerWidget {
-  const _SummaryTab();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Watch todayAsSummaryListProvider — aggregates history entries from
-    // midnight to now. The DB has no daily_summary node, so dailySummariesProvider
-    // always returned empty. This provider computes the same data on the fly.
-    final summariesAsync = ref.watch(todayAsSummaryListProvider);
-    final impactAsync    = ref.watch(impactAlertsProvider);
-
-    return RefreshIndicator(
-      color: _PgColors.primary,
-      onRefresh: () async {
-        // Invalidate history so the aggregation re-runs with fresh data
-        ref.invalidate(activityHistoryProvider);
-        ref.invalidate(impactAlertsProvider);
-      },
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 20, 16, 28),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            summariesAsync.when(
-              data: (summaries) {
-                final totalSteps =
-                    summaries.fold(0, (sum, s) => sum + s.totalSteps);
-                final totalMins =
-                    summaries.fold(0.0, (sum, s) => sum + s.totalActiveMinutes);
-                final totalImpacts =
-                    summaries.fold(0, (sum, s) => sum + s.impactCount);
-                return _StatChipsRow(
-                  totalSteps: totalSteps,
-                  totalMins: totalMins,
-                  totalImpacts: totalImpacts,
-                );
-              },
-              loading: () => const _LoadingCard(),
-              error: (e, _) => _ErrorCard(error: e),
-            ),
-            const SizedBox(height: 22),
-            const Text(
-              'Recent Impacts',
-              style: TextStyle(
-                  fontSize: 20, fontWeight: FontWeight.w800, color: _PgColors.text),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Last 10 impact events recorded by the collar',
-              style: TextStyle(fontSize: 13, color: _PgColors.subtext),
-            ),
-            const SizedBox(height: 14),
-            impactAsync.when(
-              data: (impacts) {
-                if (impacts.isEmpty) {
-                  return const _NoDataCard(
-                      message: 'No impacts recorded. Your pet is safe! 🐾');
-                }
-                return Column(
-                  children: impacts
-                      .take(10)
-                      .map((i) => Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: _ImpactListTile(activity: i),
-                          ))
-                      .toList(),
-                );
-              },
-              loading: () => const _LoadingCard(),
-              error: (e, _) => _ErrorCard(error: e),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StatChipsRow extends StatelessWidget {
-  final int totalSteps;
-  final double totalMins;
-  final int totalImpacts;
-  const _StatChipsRow(
-      {required this.totalSteps,
-      required this.totalMins,
-      required this.totalImpacts});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(children: [
-      Expanded(
-          child: _StatChip(
-              icon: Icons.pets_rounded,
-              value: '$totalSteps',
-              label: 'Total Steps')),
-      const SizedBox(width: 10),
-      Expanded(
-          child: _StatChip(
-              icon: Icons.timer_outlined,
-              value: '${totalMins.toStringAsFixed(0)} m',
-              label: 'Active Time')),
-      const SizedBox(width: 10),
-      Expanded(
-          child: _StatChip(
-              icon: Icons.warning_amber_rounded,
-              value: '$totalImpacts',
-              label: 'Impacts',
-              accent: totalImpacts > 0 ? _PgColors.danger : _PgColors.primary)),
-    ]);
-  }
-}
-
-class _StatChip extends StatelessWidget {
-  final IconData icon;
-  final String value;
-  final String label;
-  final Color accent;
-  const _StatChip(
-      {required this.icon,
-      required this.value,
-      required this.label,
-      this.accent = _PgColors.primary});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: _PgDecor.card(),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 18),
-      child: Column(children: [
-        Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-              color: accent.withOpacity(0.10),
-              borderRadius: BorderRadius.circular(14)),
-          child: Icon(icon, color: accent, size: 22),
-        ),
-        const SizedBox(height: 10),
-        Text(value,
-            style: TextStyle(
-                color: accent, fontSize: 18, fontWeight: FontWeight.w900)),
-        const SizedBox(height: 4),
-        Text(label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 11, color: _PgColors.subtext)),
-      ]),
-    );
-  }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TAB 3 · HISTORY  (unchanged)
+// TAB 2 · HISTORY  — chart + gantt + calendar + stats
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _HistoryTab extends ConsumerWidget {
+class _HistoryTab extends ConsumerStatefulWidget {
   const _HistoryTab();
+  @override
+  ConsumerState<_HistoryTab> createState() => _HistoryTabState();
+}
+
+class _HistoryTabState extends ConsumerState<_HistoryTab> {
+  DateTime _selectedDate = DateTime.now();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final historyAsync = ref.watch(activityHistoryProvider);
 
-    return RefreshIndicator(
-      color: _PgColors.primary,
-      onRefresh: () async => ref.invalidate(activityHistoryProvider),
-      child: historyAsync.when(
-        data: (history) {
-          if (history.isEmpty) {
-            return const SingleChildScrollView(
-              physics: AlwaysScrollableScrollPhysics(),
-              padding: EdgeInsets.fromLTRB(16, 16, 16, 28),
-              child: _NoDataCard(
-                  message:
-                      'No history yet.\nAdd data to Firebase to see logs here.'),
+    return historyAsync.when(
+      data: (history) {
+        // Filter to selected date
+        final dayEntries = history.where((e) {
+          final d = e.timestamp;
+          return d.year == _selectedDate.year &&
+              d.month == _selectedDate.month &&
+              d.day == _selectedDate.day;
+        }).toList()
+          ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+        return RefreshIndicator(
+          color: _PgColors.primary,
+          onRefresh: () async => ref.invalidate(activityHistoryProvider),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Date picker row ────────────────────────────────────────
+                _DatePickerRow(
+                  selected: _selectedDate,
+                  onChanged: (d) => setState(() => _selectedDate = d),
+                ),
+                const SizedBox(height: 16),
+
+                if (dayEntries.isEmpty)
+                  _NoDataCard(
+                    message:
+                        'No activity recorded for ${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}.',
+                  )
+                else ...[
+                  // ── Line chart ─────────────────────────────────────────
+                  _ActivityLineChart(entries: dayEntries),
+                  const SizedBox(height: 14),
+
+                  // ── Gantt band ─────────────────────────────────────────
+                  _GanttBand(entries: dayEntries),
+                  const SizedBox(height: 14),
+
+                  // ── Summary stats ──────────────────────────────────────
+                  _DaySummaryStats(entries: dayEntries),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+      loading: () => const Center(child: _LoadingCard()),
+      error: (e, _) => Center(child: _ErrorCard(error: e)),
+    );
+  }
+}
+
+// ── Date picker row ───────────────────────────────────────────────────────────
+
+class _DatePickerRow extends StatelessWidget {
+  final DateTime selected;
+  final ValueChanged<DateTime> onChanged;
+  const _DatePickerRow({required this.selected, required this.onChanged});
+
+  String _label(DateTime d) {
+    final now = DateTime.now();
+    if (d.year == now.year && d.month == now.month && d.day == now.day) {
+      return 'Today';
+    }
+    return '${d.day}/${d.month}/${d.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Text(
+          'Activity History',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: _PgColors.text,
+          ),
+        ),
+        const Spacer(),
+        GestureDetector(
+          onTap: () async {
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: selected,
+              firstDate: DateTime.now().subtract(const Duration(days: 90)),
+              lastDate: DateTime.now(),
+              builder: (ctx, child) => Theme(
+                data: Theme.of(ctx).copyWith(
+                  colorScheme: const ColorScheme.light(
+                    primary: _PgColors.primary,
+                    onPrimary: Colors.white,
+                  ),
+                ),
+                child: child!,
+              ),
             );
-          }
-          return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-            itemCount: history.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (ctx, i) => _HistoryTile(activity: history[i]),
-          );
-        },
-        loading: () => const Center(child: _LoadingCard()),
-        error: (e, _) => Center(child: _ErrorCard(error: e)),
+            if (picked != null) onChanged(picked);
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+              color: _PgColors.soft,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: _PgColors.border),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.calendar_month_outlined,
+                    size: 15, color: _PgColors.primary),
+                const SizedBox(width: 5),
+                Text(
+                  _label(selected),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: _PgColors.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Activity line chart ───────────────────────────────────────────────────────
+
+class _ActivityLineChart extends StatelessWidget {
+  final List<ActivityData> entries;
+  const _ActivityLineChart({required this.entries});
+
+  static const _sevHigh   = Color(0xFFD32F2F);
+  static const _sevMed    = Color(0xFFF57C00);
+  static const _sevLow    = Color(0xFF2E7D32);
+
+  @override
+  Widget build(BuildContext context) {
+    // Build spots from entries
+    final spots = entries.map((e) {
+      final x = e.timestamp.hour + e.timestamp.minute / 60.0;
+      final y = e.activityLevel.toDouble();
+      return FlSpot(x, y);
+    }).toList();
+
+    // Impact entries for overlay dots
+    final impacts = entries.where((e) => e.impactDetected).toList();
+
+    return Container(
+      decoration: _PgDecor.card(),
+      padding: const EdgeInsets.fromLTRB(12, 14, 16, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              const Text(
+                'Activity level',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: _PgColors.text,
+                ),
+              ),
+              const Spacer(),
+              // Legend
+              _dot(_sevHigh, 'High impact'),
+              const SizedBox(width: 8),
+              _dot(_sevMed, 'Med'),
+              const SizedBox(width: 8),
+              _dot(_sevLow, 'Low'),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          SizedBox(
+            height: 160,
+            child: LineChart(
+              LineChartData(
+                minX: 0, maxX: 24,
+                minY: -0.3, maxY: 3.5,
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: 1,
+                  getDrawingHorizontalLine: (_) => FlLine(
+                    color: _PgColors.border,
+                    strokeWidth: 0.8,
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                titlesData: FlTitlesData(
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 52,
+                      interval: 1,
+                      getTitlesWidget: (v, _) {
+                        const labels = ['Rest', 'Light', 'Mod', 'Active'];
+                        final i = v.toInt();
+                        if (i < 0 || i >= labels.length) return const SizedBox();
+                        return Text(
+                          labels[i],
+                          style: const TextStyle(
+                            fontSize: 9,
+                            color: _PgColors.subtext,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 20,
+                      interval: 4,
+                      getTitlesWidget: (v, _) {
+                        final h = v.toInt();
+                        String label;
+                        if (h == 0) label = '12a';
+                        else if (h == 12) label = '12p';
+                        else if (h < 12) label = '${h}a';
+                        else label = '${h - 12}p';
+                        return Text(
+                          label,
+                          style: const TextStyle(
+                            fontSize: 9,
+                            color: _PgColors.subtext,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                ),
+                
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: spots,
+                    isCurved: false,
+                    isStepLineChart: true,
+                    color: _PgColors.primary,
+                    barWidth: 2.5,
+                    dotData: const FlDotData(show: false),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      color: _PgColors.primary.withOpacity(0.08),
+                    ),
+                  ),
+                  // Impact dots — transparent line, visible dots only
+                  LineChartBarData(
+                    spots: impacts.map((e) {
+                      final x = e.timestamp.hour + e.timestamp.minute / 60.0;
+                      final y = e.activityLevel.toDouble();
+                      return FlSpot(x, y);
+                    }).toList(),
+                    isCurved: false,
+                    color: Colors.transparent,
+                    barWidth: 0,
+                    dotData: FlDotData(
+                      show: true,
+                      getDotPainter: (spot, pct, bar, idx) {
+                        final entry = impacts[idx];
+                        final color = entry.impactSeverity >= 7.0
+                            ? _sevHigh
+                            : entry.impactSeverity >= 4.0
+                                ? _sevMed
+                                : _sevLow;
+                        return FlDotCirclePainter(
+                          radius: 5,
+                          color: color,
+                          strokeColor: Colors.white,
+                          strokeWidth: 1.5,
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _dot(Color c, String label) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Container(
+        width: 7, height: 7,
+        decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+      ),
+      const SizedBox(width: 3),
+      Text(label, style: const TextStyle(fontSize: 9, color: _PgColors.subtext)),
+    ],
+  );
+}
+
+// ── Gantt status band ─────────────────────────────────────────────────────────
+
+class _GanttBand extends StatelessWidget {
+  final List<ActivityData> entries;
+  const _GanttBand({required this.entries});
+
+  static const _colors = [
+    Color(0xFFB3D9F5), // resting — soft blue
+    Color(0xFF1baf7a), // light   — green
+    Color(0xFFeda100), // moderate — amber
+    Color(0xFFe34948), // active  — red
+  ];
+
+  static const _labels = ['Resting', 'Light', 'Moderate', 'Active'];
+
+  Color _impactColor(double sev) => sev >= 7.0
+      ? const Color(0xFFD32F2F)
+      : sev >= 4.0
+          ? const Color(0xFFF57C00)
+          : const Color(0xFF2E7D32);
+
+  @override
+  Widget build(BuildContext context) {
+    final impacts = entries.where((e) => e.impactDetected).toList();
+
+    return Container(
+      decoration: _PgDecor.card(),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Status band · full day',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _PgColors.subtext),
+          ),
+          const SizedBox(height: 8),
+
+          // Gantt bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: SizedBox(
+              height: 18,
+              child: LayoutBuilder(builder: (ctx, constraints) {
+                return Row(
+                  children: entries.map((e) {
+                    final level = e.activityLevel;
+                    // Each entry gets equal width slice
+                    return Expanded(
+                      child: Container(
+                        color: _colors[level.clamp(0, 3)],
+                      ),
+                    );
+                  }).toList(),
+                );
+              }),
+            ),
+          ),
+
+          // Time labels
+          const Padding(
+            padding: EdgeInsets.only(top: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('12am', style: TextStyle(fontSize: 9, color: _PgColors.subtext)),
+                Text('6am',  style: TextStyle(fontSize: 9, color: _PgColors.subtext)),
+                Text('12pm', style: TextStyle(fontSize: 9, color: _PgColors.subtext)),
+                Text('6pm',  style: TextStyle(fontSize: 9, color: _PgColors.subtext)),
+                Text('11pm', style: TextStyle(fontSize: 9, color: _PgColors.subtext)),
+              ],
+            ),
+          ),
+
+          // Impact tick marks
+          if (impacts.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const Text('Impacts  ',
+                    style: TextStyle(fontSize: 9, color: _PgColors.subtext)),
+                Expanded(
+                  child: LayoutBuilder(builder: (ctx, constraints) {
+                    return Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(height: 12),
+                        ...impacts.map((e) {
+                          final pct =
+                              (e.timestamp.hour * 60 + e.timestamp.minute) /
+                                  (23 * 60 + 59);
+                          return Positioned(
+                            left: pct * constraints.maxWidth - 1,
+                            top: 0,
+                            child: Container(
+                              width: 2.5,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: _impactColor(e.impactSeverity),
+                                borderRadius: BorderRadius.circular(1),
+                              ),
+                            ),
+                          );
+                        }),
+                      ],
+                    );
+                  }),
+                ),
+              ],
+            ),
+          ],
+
+          // Legend
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 10,
+            children: List.generate(4, (i) => Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 10, height: 10,
+                  decoration: BoxDecoration(
+                    color: _colors[i],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 3),
+                Text(_labels[i],
+                    style: const TextStyle(
+                        fontSize: 9, color: _PgColors.subtext)),
+              ],
+            )),
+          ),
+        ],
       ),
     );
   }
 }
 
+// ── Day summary stats ─────────────────────────────────────────────────────────
+
+class _DaySummaryStats extends StatelessWidget {
+  final List<ActivityData> entries;
+  const _DaySummaryStats({required this.entries});
+
+  @override
+  Widget build(BuildContext context) {
+    final impacts = entries.where((e) => e.impactDetected).toList();
+    final highImpacts = impacts.where((e) => e.impactSeverity >= 7.0).length;
+    final medImpacts  = impacts.where((e) => e.impactSeverity >= 4.0 && e.impactSeverity < 7.0).length;
+
+    // Dominant activity level
+    final levelCounts = [0, 0, 0, 0];
+    for (final e in entries) {
+      levelCounts[e.activityLevel.clamp(0, 3)]++;
+    }
+    final dominantIdx = levelCounts.indexOf(levelCounts.reduce((a, b) => a > b ? a : b));
+    const levelNames = ['Resting', 'Light', 'Moderate', 'Active'];
+
+    final activeCount = entries.where((e) => e.activityLevel >= 2).length;
+    final activeHours = (activeCount * 0.25).toStringAsFixed(1); // assuming 15-min intervals
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Daily summary',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: _PgColors.text,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(children: [
+          Expanded(
+            child: _StatChip(
+              icon: Icons.timer_outlined,
+              value: '${activeHours}h',
+              label: 'Active Time',
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _StatChip(
+              icon: Icons.warning_amber_rounded,
+              value: '$highImpacts high\n$medImpacts med',
+              label: 'Impacts',
+              accent: highImpacts > 0 ? _PgColors.danger : _PgColors.primary,
+            ),
+          ),
+        ]),
+        const SizedBox(height: 10),
+        Row(children: [
+          Expanded(
+            child: _StatChip(
+              icon: Icons.track_changes_outlined,
+              value: levelNames[dominantIdx],
+              label: 'Dominant Status',
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _StatChip(
+              icon: Icons.trending_up_rounded,
+              value: entries.isEmpty ? '--:--' : () {
+                final peak = entries.reduce(
+                  (a, b) => a.activityLevel >= b.activityLevel ? a : b,
+                );
+                final h = peak.timestamp.hour.toString().padLeft(2, '0');
+                final m = peak.timestamp.minute.toString().padLeft(2, '0');
+                return '$h:$m';
+              }(),
+              label: 'Peak Activity',
+            ),
+          ),
+        ]),
+      ],
+    );
+  }
+}
 // ─────────────────────────────────────────────────────────────────────────────
 // SHARED WIDGETS
 // ─────────────────────────────────────────────────────────────────────────────
-
-class _ImpactListTile extends StatelessWidget {
-  final ActivityData activity;
-  const _ImpactListTile({required this.activity});
-
-  @override
-  Widget build(BuildContext context) {
-    final high = activity.impactSeverity >= 7.0;
-    return Container(
-      decoration: _PgDecor.card(
-          color: high ? const Color(0xFFFFF5F4) : _PgColors.card),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      child: Row(children: [
-        Container(
-          width: 46,
-          height: 46,
-          decoration: BoxDecoration(
-              color: high ? const Color(0xFFFFE2DF) : const Color(0xFFFFF1DE),
-              borderRadius: BorderRadius.circular(16)),
-          child: Icon(Icons.warning_amber_rounded,
-              color: high ? _PgColors.danger : _PgColors.warning),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(
-                'Severity: ${activity.impactSeverity.toStringAsFixed(1)} / 10',
-                style: const TextStyle(
-                    fontWeight: FontWeight.w800, color: _PgColors.text)),
-            const SizedBox(height: 4),
-            Text(
-                '${activity.timestamp.day}/${activity.timestamp.month} at '
-                '${activity.timestamp.hour.toString().padLeft(2, '0')}:'
-                '${activity.timestamp.minute.toString().padLeft(2, '0')}',
-                style: const TextStyle(color: _PgColors.subtext, fontSize: 12)),
-          ]),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-          decoration: BoxDecoration(
-              color: high ? _PgColors.danger : _PgColors.warning,
-              borderRadius: BorderRadius.circular(999)),
-          child: Text(high ? 'HIGH' : 'MED',
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800)),
-        ),
-      ]),
-    );
-  }
-}
-
-class _HistoryTile extends StatelessWidget {
-  final ActivityData activity;
-  const _HistoryTile({required this.activity});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: _PgDecor.card(),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      child: Row(children: [
-        // Removed the emoji badge container
-        Expanded(
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(_activityTitle(activity.activityType),
-                style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    color: _PgColors.text,
-                    fontSize: 15)),
-            const SizedBox(height: 4),
-            Text(
-                '${activity.timestamp.day}/${activity.timestamp.month}  '
-                '${activity.timestamp.hour.toString().padLeft(2, '0')}:'
-                '${activity.timestamp.minute.toString().padLeft(2, '0')}',
-                style: const TextStyle(color: _PgColors.subtext, fontSize: 12)),
-          ]),
-        ),
-        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Text('${activity.stepCount} steps',
-              style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: _PgColors.text)),
-          const SizedBox(height: 4),
-          if (activity.impactDetected)
-            const Text('Impact',
-                style: TextStyle(
-                    color: _PgColors.danger,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700)),
-        ]),
-      ]),
-    );
-  }
-}
 
 class _LoadingCard extends StatelessWidget {
   const _LoadingCard();
@@ -811,6 +1039,46 @@ class _LoadingCard extends StatelessWidget {
         Text('Fetching the latest collar data.',
             textAlign: TextAlign.center,
             style: TextStyle(color: _PgColors.subtext, fontSize: 12)),
+      ]),
+    );
+  }
+}
+
+class _StatChip extends StatelessWidget {
+  final IconData icon;
+  final String value;
+  final String label;
+  final Color accent;
+  const _StatChip({
+    required this.icon,
+    required this.value,
+    required this.label,
+    this.accent = _PgColors.primary,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: _PgDecor.card(),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 18),
+      child: Column(children: [
+        Container(
+          width: 42, height: 42,
+          decoration: BoxDecoration(
+            color: accent.withOpacity(0.10),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Icon(icon, color: accent, size: 22),
+        ),
+        const SizedBox(height: 10),
+        Text(value,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+                color: accent, fontSize: 16, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 4),
+        Text(label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 11, color: _PgColors.subtext)),
       ]),
     );
   }

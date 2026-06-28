@@ -172,6 +172,7 @@ class ActivityData {
   final DateTime timestamp;
   final int stepCount;
   final double activeMinutes;
+  final int activityLevel; // 0=resting, 1=light, 2=moderate, 3=active
 
   ActivityData({
     required this.activityType,
@@ -187,6 +188,7 @@ class ActivityData {
     required this.timestamp,
     required this.stepCount,
     required this.activeMinutes,
+    required this.activityLevel,
   });
 
   // ── Safe parsers ────────────────────────────────────────────────────────────
@@ -212,6 +214,16 @@ class ActivityData {
     return s == 'true' || s == '1';
   }
 
+  static int _deriveLevel(String type) {
+  switch (type.toLowerCase()) {
+    case 'resting': return 0;
+    case 'walking': return 1;
+    case 'playing': return 2;
+    case 'running': return 3;
+    default:        return 0;
+  }
+}
+
   // ── fromMap ─────────────────────────────────────────────────────────────────
   factory ActivityData.fromMap(Map<dynamic, dynamic> map) {
     final accel = map['accelerometer'] as Map? ?? {};
@@ -236,6 +248,7 @@ class ActivityData {
       timestamp: ts,
       stepCount: _toInt(map['step_count']),
       activeMinutes: _toDouble(map['active_minutes']),
+      activityLevel: _deriveLevel(map['activity_type']?.toString() ?? 'resting'),
     );
   }
 
