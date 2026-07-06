@@ -19,7 +19,7 @@ class _ActivityDashboardScreenState
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  static const Color _primary = Color(0xFF009688);
+  // Primary color now comes from the active ThemeData at runtime.
 
   @override
   void initState() {
@@ -36,10 +36,10 @@ class _ActivityDashboardScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _PgColors.page,
+      backgroundColor: _PgColors.page(context),
       appBar: AppBar(
         title: const Text('Activity Monitor'),
-        backgroundColor: _primary,
+        backgroundColor: _PgColors.primary(context),
         foregroundColor: Colors.white,
         elevation: 0,
         bottom: TabBar(
@@ -71,35 +71,37 @@ class _ActivityDashboardScreenState
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _PgColors {
-  static const Color primary     = Color(0xFF009688);
-  static const Color primaryDark = Color(0xFF00796B);
-  static const Color page        = Color(0xFFF4F7F7);
-  static const Color card        = Colors.white;
-  static const Color soft        = Color(0xFFEAF7F5);
-  static const Color soft2       = Color(0xFFF1FBF9);
-  static const Color text        = Color(0xFF143237);
-  static const Color subtext     = Color(0xFF6D8387);
-  static const Color border      = Color(0xFFDCE9E7);
-  static const Color warning     = Color(0xFFF57C00);
-  static const Color danger      = Color(0xFFD32F2F);
-  static const Color success     = Color(0xFF2E7D32);
+  static Color primary(BuildContext c) => Theme.of(c).colorScheme.primary;
+  static Color page(BuildContext c) => Theme.of(c).scaffoldBackgroundColor;
+  static Color card(BuildContext c) => Theme.of(c).cardColor;
+  static Color soft(BuildContext c) => Theme.of(c).brightness == Brightness.dark
+      ? const Color(0xFF213233)
+      : const Color(0xFFEAF7F5);
+  static Color text(BuildContext c) => Theme.of(c).textTheme.bodyMedium?.color ?? Colors.black;
+  static Color subtext(BuildContext c) => Theme.of(c).textTheme.bodySmall?.color ?? Colors.grey;
+  static Color border(BuildContext c) => Theme.of(c).dividerColor;
+  static Color warning(BuildContext c) => const Color(0xFFF57C00);
+  static Color danger(BuildContext c) => const Color(0xFFD32F2F);
 }
 
 class _PgDecor {
   static BorderRadius get xl => BorderRadius.circular(24);
   static BorderRadius get lg => BorderRadius.circular(20);
 
-  static BoxDecoration card({
-    Color color = _PgColors.card,
-    Color border = _PgColors.border,
+  static BoxDecoration card(BuildContext ctx, {
+    Color? color,
+    Color? border,
   }) {
+    final brightness = Theme.of(ctx).brightness;
+    color ??= _PgColors.card(ctx);
+    border ??= _PgColors.border(ctx);
     return BoxDecoration(
       color: color,
       borderRadius: xl,
       border: Border.all(color: border),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withOpacity(0.04),
+          color: Colors.black.withAlpha(brightness == Brightness.dark ? 46 : 10),
           blurRadius: 18,
           offset: const Offset(0, 8),
         ),
@@ -119,12 +121,6 @@ String _activityTitle(String type) {
   if (type.isEmpty) return 'Unknown';
   final lower = type.toLowerCase();
   return lower[0].toUpperCase() + lower.substring(1);
-}
-
-String _formatTime(DateTime dt) {
-  return '${dt.day}/${dt.month}  '
-      '${dt.hour.toString().padLeft(2, '0')}:'
-      '${dt.minute.toString().padLeft(2, '0')}';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -198,116 +194,7 @@ class _LiveLayout extends StatelessWidget {
   }
 }
 
-// ── Hero card — emoji watermark + big text, NO icon bubble ───────────────────
-/*
-class _ActivityHeroCard extends StatelessWidget {
-  final ActivityData activity;
-  const _ActivityHeroCard({required this.activity});
-
-  // Per-activity gradient pairs (start, end)
-  /*
-  static const Map<String, List<Color>> _gradients = {
-    'walking': [Color(0xFF10B5A7), Color(0xFF009688)],
-    'running': [Color(0xFF29B6F6), Color(0xFF0288D1)],
-    'resting': [Color(0xFFAB47BC), Color(0xFF7B1FA2)],
-    'playing': [Color(0xFFFFA726), Color(0xFFF57C00)],
-    'impact':  [Color(0xFFE86D5B), Color(0xFFD84F43)],
-  };
-  */
-
-
-  //static const List<Color> _impactGrad = [Color(0xFFE86D5B), Color(0xFFD84F43)];
-
-  static const List<Color> _fixedGradient = [Color(0xFF10B5A7), Color(0xFF009688)];
-
-  @override
-  Widget build(BuildContext context) {
-    //final key    = activity.activityType.toLowerCase();
-    /*
-    final grad   = activity.impactDetected
-        ? _impactGrad
-        : (_gradients[key] ?? _gradients['walking']!);
-    */
-    final grad = _fixedGradient;
-    final shadow = _PgColors.primary; // Always use primary color for shadow
-    final label = _activityTitle(activity.activityType);
-    //final shadow = activity.impactDetected ? _PgColors.danger : _PgColors.primary;
-    //final label  = activity.impactDetected ? 'Impact!' : _activityTitle(activity.activityType);
-
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: grad,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: _PgDecor.xl,
-        boxShadow: [
-          BoxShadow(
-            color: shadow.withOpacity(0.28),
-            blurRadius: 28,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      child: Padding(
-            padding: const EdgeInsets.fromLTRB(26, 28, 26, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Label
-                Text(
-                  'Current Activity',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.78),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-
-                const Spacer(),
-
-                // Big activity name
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 30,
-                    fontWeight: FontWeight.w900,
-                    height: 1.1,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-
-                const SizedBox(height: 14),
-
-                // Timestamp pill
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.18),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    'Updated ${_formatTime(activity.timestamp)}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-    );     
-    
-  }
-}
-*/
-// REPLACE _ActivityHeroCard entirely:
+// ── Hero card implementation ───────────────────────────────────────
 
 class _ActivityHeroCard extends StatelessWidget {
   final ActivityData activity;
@@ -347,7 +234,7 @@ static List<Color> _gradientFor(String type) =>
         borderRadius: _PgDecor.xl,
         boxShadow: [
           BoxShadow(
-            color: _gradientFor(activity.activityType)[1].withOpacity(0.22),
+            color: _gradientFor(activity.activityType)[1].withAlpha(56),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -366,7 +253,7 @@ static List<Color> _gradientFor(String type) =>
               Text(
                 'Current Activity',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.80),
+                  color: Colors.white.withAlpha(204),
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.3,
@@ -386,7 +273,7 @@ static List<Color> _gradientFor(String type) =>
                   Text(
                     dateStr,
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.70),
+                      color: Colors.white.withAlpha(179),
                       fontSize: 11,
                     ),
                   ),
@@ -421,7 +308,7 @@ static List<Color> _gradientFor(String type) =>
                     shape: BoxShape.circle,
                     color: i <= level
                         ? Colors.white
-                        : Colors.white.withOpacity(0.25),
+                        : Colors.white.withAlpha(64),
                   ),
                 )),
               ),
@@ -434,7 +321,7 @@ static List<Color> _gradientFor(String type) =>
           Text(
             'Level ${level + 1} · ${_levelLabels[level]}',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.75),
+              color: Colors.white.withAlpha(191),
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),
@@ -461,7 +348,7 @@ class _LiveStatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: _PgDecor.card(),
+      decoration: _PgDecor.card(context),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
         children: [
@@ -469,10 +356,10 @@ class _LiveStatCard extends StatelessWidget {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: _PgColors.soft,
+              color: _PgColors.soft(context),
               borderRadius: BorderRadius.circular(13),
             ),
-            child: Icon(icon, color: _PgColors.primary, size: 20),
+            child: Icon(icon, color: _PgColors.primary(context), size: 20),
           ),
           const SizedBox(width: 14),
           Column(
@@ -481,18 +368,18 @@ class _LiveStatCard extends StatelessWidget {
             children: [
               Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w900,
-                  color: _PgColors.text,
+                  color: _PgColors.text(context),
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: _PgColors.subtext,
+                  color: _PgColors.subtext(context),
                 ),
               ),
             ],
@@ -516,14 +403,31 @@ class _ImpactAlertCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final high      = detected && severity >= 7.0;
-    final accent    = !detected ? _PgColors.primary : high ? _PgColors.danger : _PgColors.warning;
-    final bg        = !detected
-        ? const Color(0xFFEFF8F4)
-        : high ? const Color(0xFFFFEFEE) : const Color(0xFFFFF5EA);
-    final borderCol = !detected
-        ? const Color(0xFFBBDDD5)
-        : high ? const Color(0xFFF4C7C1) : const Color(0xFFF6D9B8);
+    final high = detected && severity >= 7.0;
+    final accent = !detected
+      ? _PgColors.primary(context)
+      : high
+        ? _PgColors.danger(context)
+        : _PgColors.warning(context);
+
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final bg = isDark
+        ? (!detected
+            ? const Color(0xFF162522) // Dark muted teal
+            : high ? const Color(0xFF331C1C) : const Color(0xFF33241B)) // Dark red / Dark orange
+        : (!detected
+            ? const Color(0xFFEFF8F4)
+            : high ? const Color(0xFFFFEFEE) : const Color(0xFFFFF5EA));
+
+    final borderCol = isDark
+        ? (!detected
+            ? const Color(0xFF25423B)
+            : high ? const Color(0xFF5C2C2C) : const Color(0xFF5C3F2B))
+        : (!detected
+            ? const Color(0xFFBBDDD5)
+            : high ? const Color(0xFFF4C7C1) : const Color(0xFFF6D9B8));
 
     return Container(
       decoration: BoxDecoration(
@@ -532,7 +436,7 @@ class _ImpactAlertCard extends StatelessWidget {
         border: Border.all(color: borderCol),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withAlpha(8),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -545,7 +449,7 @@ class _ImpactAlertCard extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: accent.withOpacity(0.12),
+              color: accent.withAlpha(31),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(
@@ -575,8 +479,8 @@ class _ImpactAlertCard extends StatelessWidget {
                   !detected
                       ? 'No abnormal impact detected'
                       : 'Severity: ${severity.toStringAsFixed(1)} / 10',
-                  style: const TextStyle(
-                    color: _PgColors.subtext,
+                  style: TextStyle(
+                    color: _PgColors.subtext(context),
                     fontSize: 12,
                   ),
                 ),
@@ -745,7 +649,7 @@ class _HistoryTabState extends ConsumerState<_HistoryTab> {
           ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
         return RefreshIndicator(
-          color: _PgColors.primary,
+          color: _PgColors.primary(context),
           onRefresh: () async => ref.invalidate(activityHistoryProvider),
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -807,12 +711,12 @@ class _DatePickerRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Text(
+        Text(
           'Activity History',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w800,
-            color: _PgColors.text,
+            color: _PgColors.text(context),
           ),
         ),
         const Spacer(),
@@ -824,35 +728,35 @@ class _DatePickerRow extends StatelessWidget {
               firstDate: DateTime.now().subtract(const Duration(days: 90)),
               lastDate: DateTime.now(),
               builder: (ctx, child) => Theme(
-                data: Theme.of(ctx).copyWith(
-                  colorScheme: const ColorScheme.light(
-                    primary: _PgColors.primary,
-                    onPrimary: Colors.white,
+                  data: Theme.of(ctx).copyWith(
+                    colorScheme: ColorScheme.light(
+                      primary: _PgColors.primary(ctx),
+                      onPrimary: Colors.white,
+                    ),
                   ),
+                  child: child!,
                 ),
-                child: child!,
-              ),
             );
             if (picked != null) onChanged(picked);
           },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
             decoration: BoxDecoration(
-              color: _PgColors.soft,
+              color: _PgColors.soft(context),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: _PgColors.border),
+              border: Border.all(color: _PgColors.border(context)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.calendar_month_outlined,
-                    size: 15, color: _PgColors.primary),
+                Icon(Icons.calendar_month_outlined,
+                    size: 15, color: _PgColors.primary(context)),
                 const SizedBox(width: 5),
                 Text(
                   _label(selected),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: _PgColors.primary,
+                    color: _PgColors.primary(context),
                   ),
                 ),
               ],
@@ -887,7 +791,7 @@ class _ActivityLineChart extends StatelessWidget {
     final impacts = entries.where((e) => e.impactDetected).toList();
 
     return Container(
-      decoration: _PgDecor.card(),
+      decoration: _PgDecor.card(context),
       padding: const EdgeInsets.fromLTRB(12, 14, 16, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -895,12 +799,12 @@ class _ActivityLineChart extends StatelessWidget {
           // Header
           Row(
             children: [
-              const Text(
+              Text(
                 'Activity level',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: _PgColors.text,
+                  color: _PgColors.text(context),
                 ),
               ),
               const Spacer(),
@@ -925,7 +829,7 @@ class _ActivityLineChart extends StatelessWidget {
                   drawVerticalLine: false,
                   horizontalInterval: 1,
                   getDrawingHorizontalLine: (_) => FlLine(
-                    color: _PgColors.border,
+                    color: _PgColors.border(context),
                     strokeWidth: 0.8,
                   ),
                 ),
@@ -940,11 +844,11 @@ class _ActivityLineChart extends StatelessWidget {
                         const labels = ['Rest', 'Light', 'Mod', 'Active'];
                         final i = v.toInt();
                         if (i < 0 || i >= labels.length) return const SizedBox();
-                        return Text(
+                          return Text(
                           labels[i],
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 9,
-                            color: _PgColors.subtext,
+                            color: _PgColors.subtext(context),
                           ),
                         );
                       },
@@ -964,9 +868,9 @@ class _ActivityLineChart extends StatelessWidget {
                         else label = '${h - 12}p';
                         return Text(
                           label,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 9,
-                            color: _PgColors.subtext,
+                            color: _PgColors.subtext(context),
                           ),
                         );
                       },
@@ -984,13 +888,13 @@ class _ActivityLineChart extends StatelessWidget {
                   LineChartBarData(
                     spots: spots,
                     isCurved: false,
-                    isStepLineChart: true,
-                    color: _PgColors.primary,
+                        isStepLineChart: true,
+                        color: _PgColors.primary(context),
                     barWidth: 2.5,
                     dotData: const FlDotData(show: false),
                     belowBarData: BarAreaData(
                       show: true,
-                      color: _PgColors.primary.withOpacity(0.08),
+                          color: _PgColors.primary(context).withAlpha(20),
                     ),
                   ),
                   // Impact dots — transparent line, visible dots only
@@ -1038,7 +942,7 @@ class _ActivityLineChart extends StatelessWidget {
         decoration: BoxDecoration(color: c, shape: BoxShape.circle),
       ),
       const SizedBox(width: 3),
-      Text(label, style: const TextStyle(fontSize: 9, color: _PgColors.subtext)),
+      Builder(builder: (ctx) => Text(label, style: TextStyle(fontSize: 9, color: _PgColors.subtext(ctx)))),
     ],
   );
 }
@@ -1069,14 +973,14 @@ class _GanttBand extends StatelessWidget {
     final impacts = entries.where((e) => e.impactDetected).toList();
 
     return Container(
-      decoration: _PgDecor.card(),
+      decoration: _PgDecor.card(context),
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Status band · full day',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _PgColors.subtext),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _PgColors.subtext(context)),
           ),
           const SizedBox(height: 8),
 
@@ -1102,16 +1006,16 @@ class _GanttBand extends StatelessWidget {
           ),
 
           // Time labels
-          const Padding(
-            padding: EdgeInsets.only(top: 4),
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('12am', style: TextStyle(fontSize: 9, color: _PgColors.subtext)),
-                Text('6am',  style: TextStyle(fontSize: 9, color: _PgColors.subtext)),
-                Text('12pm', style: TextStyle(fontSize: 9, color: _PgColors.subtext)),
-                Text('6pm',  style: TextStyle(fontSize: 9, color: _PgColors.subtext)),
-                Text('11pm', style: TextStyle(fontSize: 9, color: _PgColors.subtext)),
+                Text('12am', style: TextStyle(fontSize: 9, color: _PgColors.subtext(context))),
+                Text('6am',  style: TextStyle(fontSize: 9, color: _PgColors.subtext(context))),
+                Text('12pm', style: TextStyle(fontSize: 9, color: _PgColors.subtext(context))),
+                Text('6pm',  style: TextStyle(fontSize: 9, color: _PgColors.subtext(context))),
+                Text('11pm', style: TextStyle(fontSize: 9, color: _PgColors.subtext(context))),
               ],
             ),
           ),
@@ -1121,8 +1025,8 @@ class _GanttBand extends StatelessWidget {
             const SizedBox(height: 6),
             Row(
               children: [
-                const Text('Impacts  ',
-                    style: TextStyle(fontSize: 9, color: _PgColors.subtext)),
+                Text('Impacts  ',
+                  style: TextStyle(fontSize: 9, color: _PgColors.subtext(context))),
                 Expanded(
                   child: LayoutBuilder(builder: (ctx, constraints) {
                     return Stack(
@@ -1155,7 +1059,7 @@ class _GanttBand extends StatelessWidget {
           ],
 
           // Legend
-          const SizedBox(height: 8),
+                const SizedBox(height: 8),
           Wrap(
             spacing: 10,
             children: List.generate(4, (i) => Row(
@@ -1170,8 +1074,8 @@ class _GanttBand extends StatelessWidget {
                 ),
                 const SizedBox(width: 3),
                 Text(_labels[i],
-                    style: const TextStyle(
-                        fontSize: 9, color: _PgColors.subtext)),
+                    style: TextStyle(
+                        fontSize: 9, color: _PgColors.subtext(context))),
               ],
             )),
           ),
@@ -1207,12 +1111,12 @@ class _DaySummaryStats extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Daily summary',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w800,
-            color: _PgColors.text,
+            color: _PgColors.text(context),
           ),
         ),
         const SizedBox(height: 10),
@@ -1233,10 +1137,10 @@ class _DaySummaryStats extends StatelessWidget {
                   : '${impacts.length} impacts\n${highImpacts > 0 ? '$highImpacts critical' : 'none critical'}',
               label: 'Impacts Today',
               accent: highImpacts > 0
-                  ? _PgColors.danger
+                  ? _PgColors.danger(context)
                   : impacts.isNotEmpty
-                      ? _PgColors.warning
-                      : _PgColors.primary,
+                      ? _PgColors.warning(context)
+                      : _PgColors.primary(context),
             ),
           ),
         ]),
@@ -1278,17 +1182,17 @@ class _LoadingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: _PgDecor.card(),
+      decoration: _PgDecor.card(context),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
-      child: const Column(mainAxisSize: MainAxisSize.min, children: [
-        CircularProgressIndicator(color: _PgColors.primary),
-        SizedBox(height: 16),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        CircularProgressIndicator(color: _PgColors.primary(context)),
+        const SizedBox(height: 16),
         Text('Loading activity data...',
-            style: TextStyle(fontWeight: FontWeight.w700, color: _PgColors.text)),
-        SizedBox(height: 6),
+            style: TextStyle(fontWeight: FontWeight.w700, color: _PgColors.text(context))),
+        const SizedBox(height: 6),
         Text('Fetching the latest collar data.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: _PgColors.subtext, fontSize: 12)),
+            style: TextStyle(color: _PgColors.subtext(context), fontSize: 12)),
       ]),
     );
   }
@@ -1298,37 +1202,38 @@ class _StatChip extends StatelessWidget {
   final IconData icon;
   final String value;
   final String label;
-  final Color accent;
+  final Color? accent;
   const _StatChip({
     required this.icon,
     required this.value,
     required this.label,
-    this.accent = _PgColors.primary,
+    this.accent,
   });
 
   @override
   Widget build(BuildContext context) {
+    final _accent = accent ?? _PgColors.primary(context);
     return Container(
-      decoration: _PgDecor.card(),
+      decoration: _PgDecor.card(context),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 18),
       child: Column(children: [
         Container(
           width: 42, height: 42,
           decoration: BoxDecoration(
-            color: accent.withOpacity(0.10),
+            color: _accent.withAlpha(26),
             borderRadius: BorderRadius.circular(14),
           ),
-          child: Icon(icon, color: accent, size: 22),
+          child: Icon(icon, color: _accent, size: 22),
         ),
         const SizedBox(height: 10),
         Text(value,
             textAlign: TextAlign.center,
             style: TextStyle(
-                color: accent, fontSize: 12, fontWeight: FontWeight.w900)),
+                color: _accent, fontSize: 12, fontWeight: FontWeight.w900)),
         const SizedBox(height: 4),
         Text(label,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 11, color: _PgColors.subtext)),
+            style: TextStyle(fontSize: 11, color: _PgColors.subtext(context))),
       ]),
     );
   }
@@ -1340,22 +1245,22 @@ class _NoDataCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: _PgDecor.card(),
+      decoration: _PgDecor.card(context),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 36),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Container(
           width: 58,
           height: 58,
           decoration: BoxDecoration(
-              color: _PgColors.soft, borderRadius: BorderRadius.circular(18)),
-          child: const Icon(Icons.sensors_off_outlined,
-              color: _PgColors.primary, size: 30),
+              color: _PgColors.soft(context), borderRadius: BorderRadius.circular(18)),
+          child: Icon(Icons.sensors_off_outlined,
+              color: _PgColors.primary(context), size: 30),
         ),
         const SizedBox(height: 16),
         Text(message,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-                color: _PgColors.subtext, fontSize: 14, height: 1.4)),
+            style: TextStyle(
+                color: _PgColors.subtext(context), fontSize: 14, height: 1.4)),
       ]),
     );
   }
@@ -1368,16 +1273,18 @@ class _ErrorCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-          color: const Color(0xFFFFF3F2),
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF2A1D1D)
+              : const Color(0xFFFFF3F2),
           borderRadius: _PgDecor.lg,
-          border: Border.all(color: const Color(0xFFF2D2CE))),
+          border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF4A2D2D) : const Color(0xFFF2D2CE))),
       padding: const EdgeInsets.all(16),
       child: Row(children: [
-        const Icon(Icons.error_outline, color: _PgColors.danger),
+        Icon(Icons.error_outline, color: _PgColors.danger(context)),
         const SizedBox(width: 10),
         Expanded(
             child: Text('Error: $error',
-                style: const TextStyle(color: _PgColors.danger))),
+                style: TextStyle(color: _PgColors.danger(context)))),
       ]),
     );
   }
