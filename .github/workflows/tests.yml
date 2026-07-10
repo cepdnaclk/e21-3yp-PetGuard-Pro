@@ -1,0 +1,36 @@
+name: Run Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    # Set default working directory for all run steps because the Flutter project is in a subdirectory
+    defaults:
+      run:
+        working-directory: MobileApp
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run test suite
+        run: flutter test --coverage
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          # Path must be relative to the repository root (since upload-artifact doesn't use the defaults.run working-directory)
+          path: MobileApp/coverage/lcov.info
