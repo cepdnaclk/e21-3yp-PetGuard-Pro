@@ -15,6 +15,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
   final nameController = TextEditingController();
   final emailController = TextEditingController();
   final phoneController = TextEditingController();
+  final newEmailController = TextEditingController();
 
   bool loading = true;
   List<Map<String, dynamic>> pets = [];
@@ -34,12 +35,44 @@ class _UserProfilePageState extends State<UserProfilePage> {
   Future<void> updateProfile() async {
     await _ownerRepository.updateProfile(
       name: nameController.text,
-      email: emailController.text,
       phone: phoneController.text,
     );
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Profile updated successfully")),
     );
+  }
+
+  Future<void> changeEmailAddress() async {
+    final newEmail = newEmailController.text.trim();
+    if (newEmail.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("New email address cannot be empty")),
+      );
+      return;
+    }
+    try {
+      await _ownerRepository.changeEmailAddress(newEmail);
+      newEmailController.clear();
+      // Reload UI display
+      await loadUserData();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Verification email sent! Click link in your new email to complete change."),
+            backgroundColor: Color.fromARGB(255, 0, 150, 136),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error: ${e.toString()}"),
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> sendPasswordResetEmail() async {
@@ -195,11 +228,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
                         ),
                         const SizedBox(height: 10),
                         TextField(
-                          controller: emailController,
-                          decoration: const InputDecoration(labelText: "Email"),
-                        ),
-                        const SizedBox(height: 10),
-                        TextField(
                           controller: phoneController,
                           decoration: const InputDecoration(labelText: "Phone"),
                         ),
@@ -212,6 +240,68 @@ class _UserProfilePageState extends State<UserProfilePage> {
                           onPressed: updateProfile,
                           child: const Text("Save Changes"),
                         )
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // CHANGE EMAIL ADDRESS (EXPANDABLE)
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardColor,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: ExpansionTile(
+                      leading: const Icon(Icons.email_outlined,
+                          color: Color.fromARGB(255, 0, 150, 136)),
+                      title: const Text("Change Email Address"),
+                      childrenPadding: const EdgeInsets.all(16),
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              "Current Email: ",
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onSurface,
+                              ),
+                            ),
+                            Text(
+                              emailController.text,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: newEmailController,
+                          decoration: const InputDecoration(
+                            labelText: "New Email Address",
+                            hintText: "enter new email",
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color.fromARGB(255, 0, 150, 136),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            onPressed: changeEmailAddress,
+                            icon: const Icon(Icons.mark_email_read_outlined, size: 18),
+                            label: const Text("Send Verification Link"),
+                          ),
+                        ),
                       ],
                     ),
                   ),

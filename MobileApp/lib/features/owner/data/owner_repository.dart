@@ -25,19 +25,28 @@ class OwnerRepository {
   // Update user profile
   Future<void> updateProfile({
     required String name,
-    required String email,
     required String phone,
   }) async {
     final user = _auth.currentUser;
     if (user == null) return;
     await _firestore.collection('users').doc(user.uid).update({
       'name': name,
-      'email': email,
       'phone': phone,
     });
-    if (email != user.email) {
-      await user.verifyBeforeUpdateEmail(email);
-    }
+  }
+
+  // Change user email address via Firebase Auth verifyBeforeUpdateEmail
+  Future<void> changeEmailAddress(String newEmail) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('No logged-in user found.');
+    final email = newEmail.trim();
+    if (email.isEmpty) throw Exception('Email cannot be empty.');
+
+    await user.verifyBeforeUpdateEmail(email);
+
+    await _firestore.collection('users').doc(user.uid).update({
+      'email': email,
+    });
   }
 
   // Change password
