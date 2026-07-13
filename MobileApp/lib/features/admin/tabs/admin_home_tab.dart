@@ -166,105 +166,123 @@ class AdminHomeTab extends StatelessWidget {
       },
     ];
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 1.45,
-      ),
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        final item = items[index];
-        final Color color = item['color'] as Color;
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(child: _buildMetricCard(items[0], isDark)),
+            const SizedBox(width: 12),
+            Expanded(child: _buildMetricCard(items[1], isDark)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(child: _buildMetricCard(items[2], isDark)),
+            const SizedBox(width: 12),
+            Expanded(child: _buildMetricCard(items[3], isDark)),
+          ],
+        ),
+      ],
+    );
+  }
 
-        return Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isDark ? Colors.white10 : Colors.blueGrey.shade50,
+  Widget _buildMetricCard(Map<String, dynamic> item, bool isDark) {
+    final Color color = item['color'] as Color;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? Colors.white10 : Colors.blueGrey.shade50,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black12 : Colors.blueGrey.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              shape: BoxShape.circle,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: isDark ? Colors.black12 : Colors.blueGrey.withOpacity(0.04),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            child: Icon(
+              item['icon'] as IconData,
+              color: color,
+              size: 20,
+            ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: color.withOpacity(0.12),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      item['icon'] as IconData,
-                      color: color,
-                      size: 20,
-                    ),
-                  ),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item['value'] as String,
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : const Color(0xFF1E293B),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    item['title'] as String,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isDark ? Colors.blueGrey.shade300 : Colors.blueGrey.shade500,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+          const SizedBox(height: 10),
+          Text(
+            item['value'] as String,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : const Color(0xFF1E293B),
+            ),
           ),
-        );
-      },
+          const SizedBox(height: 2),
+          Text(
+            item['title'] as String,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 11,
+              color: isDark ? Colors.blueGrey.shade300 : Colors.blueGrey.shade500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildMetricsLoadingGrid() {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 1.45,
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(child: _buildMetricLoadingCard()),
+            const SizedBox(width: 12),
+            Expanded(child: _buildMetricLoadingCard()),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(child: _buildMetricLoadingCard()),
+            const SizedBox(width: 12),
+            Expanded(child: _buildMetricLoadingCard()),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMetricLoadingCard() {
+    return Container(
+      height: 100,
+      decoration: BoxDecoration(
+        color: Colors.grey.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
       ),
-      itemCount: 4,
-      itemBuilder: (context, index) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Colors.grey.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
-        );
-      },
+      child: const Center(
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
     );
   }
 
