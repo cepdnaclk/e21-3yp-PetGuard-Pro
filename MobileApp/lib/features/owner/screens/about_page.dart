@@ -130,7 +130,7 @@ class AboutPage extends StatelessWidget {
                   children: [
                     _buildSpecRow('Collar Firmware', 'v2.4.1'),
                     const Divider(height: 16),
-                    _buildSpecRow('Supported Protocol', 'Wi-Fi 802.11 b/g/n / BLE 5.0'),
+                    _buildSpecRow('Supported Protocol', 'Wi-Fi / Cellular (SIM80L)'),
                     const Divider(height: 16),
                     _buildSpecRow('Cloud Gateway', 'Firebase Realtime Database & Firestore'),
                   ],
