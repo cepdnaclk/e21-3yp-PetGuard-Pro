@@ -15,9 +15,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
   final nameController = TextEditingController();
   final emailController = TextEditingController();
   final phoneController = TextEditingController();
-  final oldPasswordController = TextEditingController();
-  final newPasswordController = TextEditingController();
-  final confirmPasswordController = TextEditingController();
 
   bool loading = true;
   List<Map<String, dynamic>> pets = [];
@@ -45,30 +42,21 @@ class _UserProfilePageState extends State<UserProfilePage> {
     );
   }
 
-  Future<void> changePassword() async {
-    final oldPassword = oldPasswordController.text;
-    final newPassword = newPasswordController.text;
-    final confirmPassword = confirmPasswordController.text;
-    if (newPassword != confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("New passwords do not match")),
-      );
-      return;
-    }
+  Future<void> sendPasswordResetEmail() async {
     try {
-      await _ownerRepository.changePassword(
-        oldPassword: oldPassword,
-        newPassword: newPassword,
-      );
-      oldPasswordController.clear();
-      newPasswordController.clear();
-      confirmPasswordController.clear();
+      await _ownerRepository.sendPasswordResetEmail();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Password updated successfully")),
+        const SnackBar(
+          content: Text("Password reset email sent! Check your inbox."),
+          backgroundColor: Color.fromARGB(255, 0, 150, 136),
+        ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: ${e.toString()}")),
+        SnackBar(
+          content: Text("Error: ${e.toString()}"),
+          backgroundColor: Colors.red.shade700,
+        ),
       );
     }
   }
@@ -239,38 +227,34 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     child: ExpansionTile(
                       leading: const Icon(Icons.lock,
                           color: Color.fromARGB(255, 0, 150, 136)),
-                      title: const Text("Change Password"),
+                      title: const Text("Reset Password"),
                       childrenPadding: const EdgeInsets.all(16),
                       children: [
-                        TextField(
-                          controller: oldPasswordController,
-                          obscureText: true,
-                          decoration:
-                              const InputDecoration(labelText: "Old Password"),
-                        ),
-                        const SizedBox(height: 10),
-                        TextField(
-                          controller: newPasswordController,
-                          obscureText: true,
-                          decoration:
-                              const InputDecoration(labelText: "New Password"),
-                        ),
-                        const SizedBox(height: 10),
-                        TextField(
-                          controller: confirmPasswordController,
-                          obscureText: true,
-                          decoration: const InputDecoration(
-                              labelText: "Confirm New Password"),
-                        ),
-                        const SizedBox(height: 15),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                const Color.fromARGB(255, 0, 150, 136),
+                        Text(
+                          "Want to reset your password? Click the button below, and a secure password reset link will be sent to your email address: ${emailController.text}.",
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: colorScheme.onSurfaceVariant,
+                            height: 1.4,
                           ),
-                          onPressed: changePassword,
-                          child: const Text("Update Password"),
-                        )
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color.fromARGB(255, 0, 150, 136),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            onPressed: sendPasswordResetEmail,
+                            icon: const Icon(Icons.mail_outline, size: 18),
+                            label: const Text("Send Reset Email"),
+                          ),
+                        ),
                       ],
                     ),
                   ),

@@ -41,17 +41,12 @@ class OwnerRepository {
   }
 
   // Change password
-  Future<void> changePassword({
-    required String oldPassword,
-    required String newPassword,
-  }) async {
+  // Send password reset email
+  Future<void> sendPasswordResetEmail() async {
     final user = _auth.currentUser;
     final email = user?.email;
-    if (user == null || email == null) return;
-    final cred = EmailAuthProvider.credential(
-        email: email, password: oldPassword);
-    await user.reauthenticateWithCredential(cred);
-    await user.updatePassword(newPassword);
+    if (email == null) throw Exception('No logged-in user email found.');
+    await _auth.sendPasswordResetEmail(email: email);
   }
 
   // Fetch all user pets
