@@ -18,6 +18,7 @@ import 'features/owner/activity/services/activity_notification_service.dart';
 import 'features/owner/screens/user_profile_page.dart';
 import 'features/owner/screens/settings_screen.dart';
 import 'features/owner/screens/help_support_page.dart';
+import 'features/owner/screens/about_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -95,6 +96,7 @@ class MyApp extends ConsumerWidget {
         Routes.userProfile: (context) => const UserProfilePage(),
         Routes.settings: (context) => const SettingsScreen(),
         Routes.helpSupport: (context) => const HelpSupportPage(),
+        Routes.about: (context) => const AboutPage(),
       },
     );
   }
