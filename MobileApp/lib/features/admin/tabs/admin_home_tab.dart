@@ -1,7 +1,12 @@
+import 'dart:async';
 import '../data/admin_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'pdf_helper.dart';
 
 class AdminHomeTab extends StatelessWidget {
   AdminHomeTab({super.key});
@@ -56,8 +61,8 @@ class AdminHomeTab extends StatelessWidget {
               ),
               const SizedBox(height: 24),
 
-              // 3. System Data Traffic Chart (Visual Element)
-              _buildTrafficChartCard(cardBg, textTheme, isDark),
+              // 3. System Data Traffic Chart (Real RTDB collar updates)
+              DatabaseSyncChartCard(cardBg: cardBg, textTheme: textTheme, isDark: isDark),
               const SizedBox(height: 24),
 
               // 4. Quick Diagnostic Actions
@@ -263,103 +268,6 @@ class AdminHomeTab extends StatelessWidget {
     );
   }
 
-  // --- Traffic Line Chart (Visual Element) ---
-  Widget _buildTrafficChartCard(Color cardBg, TextTheme textTheme, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? Colors.white10 : Colors.blueGrey.shade50),
-        boxShadow: [
-          BoxShadow(
-            color: isDark ? Colors.black12 : Colors.blueGrey.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Database Sync Load',
-                    style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 2),
-                  const Text(
-                    'Realtime packet transmissions per minute',
-                    style: TextStyle(color: Colors.grey, fontSize: 11),
-                  ),
-                ],
-              ),
-              const Icon(Icons.show_chart, color: Colors.teal),
-            ],
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            height: 150,
-            child: LineChart(
-              LineChartData(
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  getDrawingHorizontalLine: (value) => FlLine(
-                    color: isDark ? Colors.white10 : Colors.grey.shade100,
-                    strokeWidth: 1,
-                  ),
-                ),
-                titlesData: const FlTitlesData(show: false),
-                borderData: FlBorderData(show: false),
-                minX: 0,
-                maxX: 6,
-                minY: 10,
-                maxY: 60,
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: const [
-                      FlSpot(0, 20),
-                      FlSpot(1, 35),
-                      FlSpot(2, 28),
-                      FlSpot(3, 48),
-                      FlSpot(4, 38),
-                      FlSpot(5, 55),
-                      FlSpot(6, 42),
-                    ],
-                    isCurved: true,
-                    gradient: const LinearGradient(
-                      colors: [Colors.tealAccent, Colors.teal],
-                    ),
-                    barWidth: 4,
-                    isStrokeCapRound: true,
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.teal.withOpacity(0.2),
-                          Colors.teal.withOpacity(0.0),
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   // --- Diagnostic Actions ---
   Widget _buildQuickActionsCard(
       BuildContext context, Color cardBg, TextTheme textTheme, bool isDark) {
@@ -475,6 +383,615 @@ class AdminHomeTab extends StatelessWidget {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Dismiss', style: TextStyle(color: Colors.teal, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class DatabaseSyncChartCard extends StatefulWidget {
+  final Color cardBg;
+  final TextTheme textTheme;
+  final bool isDark;
+
+  const DatabaseSyncChartCard({
+    super.key,
+    required this.cardBg,
+    required this.textTheme,
+    required this.isDark,
+  });
+
+  @override
+  State<DatabaseSyncChartCard> createState() => _DatabaseSyncChartCardState();
+}
+
+class _DatabaseSyncChartCardState extends State<DatabaseSyncChartCard> {
+  final List<DateTime> _syncEvents = [];
+  StreamSubscription? _changedSubscription;
+  StreamSubscription? _addedSubscription;
+  Timer? _refreshTimer;
+
+  static const int _windowSeconds = 70;
+  static const int _intervalSeconds = 10;
+  static const int _intervalsCount = 8;
+
+  int _totalPackets = 0;
+  bool _isGeneratingPdf = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _startListening();
+    _startTimer();
+  }
+
+  void _startListening() {
+    final ref = FirebaseDatabase.instance.ref('pets');
+    
+    _changedSubscription = ref.onChildChanged.listen((event) {
+      _recordEvent();
+    });
+
+    _addedSubscription = ref.onChildAdded.listen((event) {
+      _recordEvent();
+    });
+  }
+
+  void _recordEvent() {
+    if (!mounted) return;
+    setState(() {
+      _syncEvents.add(DateTime.now());
+      _totalPackets++;
+    });
+  }
+
+  void _startTimer() {
+    _refreshTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+      final cutoff = DateTime.now().subtract(const Duration(seconds: _windowSeconds));
+      setState(() {
+        _syncEvents.removeWhere((dt) => dt.isBefore(cutoff));
+      });
+    });
+  }
+
+  List<double> _getIntervalCounts() {
+    final now = DateTime.now();
+    final counts = List<double>.filled(_intervalsCount, 0.0);
+
+    for (var event in _syncEvents) {
+      final difference = now.difference(event).inSeconds;
+      if (difference >= 0 && difference < _windowSeconds) {
+        final index = 6 - (difference ~/ _intervalSeconds);
+        if (index >= 0 && index < _intervalsCount) {
+          counts[index] += 1.0;
+        }
+      }
+    }
+    return counts;
+  }
+
+  Future<void> _generatePdfReport(BuildContext context) async {
+    setState(() {
+      _isGeneratingPdf = true;
+    });
+
+    try {
+      final rtdb = FirebaseDatabase.instance;
+      final snapshot = await rtdb.ref('pets').get();
+      final Map<dynamic, dynamic> petsData = snapshot.exists 
+          ? (snapshot.value as Map<dynamic, dynamic>? ?? {}) 
+          : {};
+
+      final pdf = pw.Document();
+
+      // Calculate total speed of packets
+      final counts = _getIntervalCounts();
+      final double currentSpeed = counts.isEmpty ? 0.0 : counts.reduce((a, b) => a + b) * 6;
+
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(32),
+          build: (pw.Context context) {
+            return [
+              pw.Header(
+                level: 0,
+                child: pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text(
+                      'PETGUARD PRO - ADMIN PORTAL',
+                      style: pw.TextStyle(
+                        fontSize: 18,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.teal,
+                      ),
+                    ),
+                    pw.Text(
+                      'SYSTEM TRAFFIC REPORT',
+                      style: pw.TextStyle(
+                        fontSize: 14,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.grey700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              pw.SizedBox(height: 20),
+              
+              pw.Text(
+                'Firebase Database Traffic & Telemetry Summary',
+                style: pw.TextStyle(
+                  fontSize: 14,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.teal800,
+                ),
+              ),
+              pw.SizedBox(height: 10),
+              
+              pw.Table(
+                border: pw.TableBorder.all(color: PdfColors.grey300),
+                children: [
+                  pw.TableRow(
+                    decoration: const pw.BoxDecoration(color: PdfColors.grey100),
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text('Metric Description', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text('Report Value', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                      ),
+                    ],
+                  ),
+                  pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text('Report Generation Time', style: const pw.TextStyle(fontSize: 10)),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(DateTime.now().toString().split('.').first, style: const pw.TextStyle(fontSize: 10)),
+                      ),
+                    ],
+                  ),
+                  pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text('Total Registered Collars (paths)', style: const pw.TextStyle(fontSize: 10)),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(petsData.keys.length.toString(), style: const pw.TextStyle(fontSize: 10)),
+                      ),
+                    ],
+                  ),
+                  pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text('Active Graph Transmission Rate', style: const pw.TextStyle(fontSize: 10)),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text('${currentSpeed.toInt()} pkts/min', style: const pw.TextStyle(fontSize: 10)),
+                      ),
+                    ],
+                  ),
+                  pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text('Cumulative Transmitted Packets', style: const pw.TextStyle(fontSize: 10)),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(_totalPackets.toString(), style: const pw.TextStyle(fontSize: 10)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              
+              pw.SizedBox(height: 30),
+              pw.Text(
+                'Live Telemetry Status Map (per Collar ID)',
+                style: pw.TextStyle(
+                  fontSize: 14,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.teal800,
+                ),
+              ),
+              pw.SizedBox(height: 10),
+              
+              if (petsData.isEmpty)
+                pw.Text('No active device data found in Firebase Realtime Database.')
+              else
+                pw.Table(
+                  border: pw.TableBorder.all(color: PdfColors.grey300),
+                  children: [
+                    pw.TableRow(
+                      decoration: const pw.BoxDecoration(color: PdfColors.grey100),
+                      children: [
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(6),
+                          child: pw.Text('Collar ID', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(6),
+                          child: pw.Text('Activity', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(6),
+                          child: pw.Text('Impact Alert', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(6),
+                          child: pw.Text('Location Status', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                        ),
+                      ],
+                    ),
+                    ...petsData.entries.map((entry) {
+                      final petId = entry.key.toString();
+                      final val = entry.value as Map<dynamic, dynamic>? ?? {};
+                      
+                      final activity = val['activity'] as Map<dynamic, dynamic>? ?? {};
+                      final currentActivity = activity['current'] as Map<dynamic, dynamic>? ?? {};
+                      
+                      final activityType = (currentActivity['activity_type'] ?? 'unknown').toString().toUpperCase();
+                      final impact = (currentActivity['impact_detected'] ?? false) == true ? 'TRIGGERED' : 'NONE';
+                      
+                      final location = val['location'] as Map<dynamic, dynamic>? ?? {};
+                      final lat = location['latitude'] ?? 'N/A';
+                      final lng = location['longitude'] ?? 'N/A';
+                      final locationString = lat != 'N/A' ? '$lat, $lng' : 'No GPS signal';
+                      
+                      return pw.TableRow(
+                        children: [
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text(petId, style: const pw.TextStyle(fontSize: 9)),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text(activityType, style: const pw.TextStyle(fontSize: 9)),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text(
+                              impact,
+                              style: pw.TextStyle(
+                                fontSize: 9,
+                                color: impact == 'TRIGGERED' ? PdfColors.red : PdfColors.black,
+                                fontWeight: impact == 'TRIGGERED' ? pw.FontWeight.bold : pw.FontWeight.normal,
+                              ),
+                            ),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text(locationString, style: const pw.TextStyle(fontSize: 9)),
+                          ),
+                        ],
+                      );
+                    }).toList(),
+                  ],
+                ),
+            ];
+          },
+        ),
+      );
+
+      final pdfBytes = await pdf.save();
+      await saveAndSharePdf(pdfBytes, 'petguard_traffic_report.pdf');
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Traffic report PDF generated successfully!')),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error generating PDF report: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to generate report: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGeneratingPdf = false;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _changedSubscription?.cancel();
+    _addedSubscription?.cancel();
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final counts = _getIntervalCounts();
+    
+    double maxCount = 5.0;
+    for (var c in counts) {
+      if (c > maxCount) maxCount = c;
+    }
+    final double maxYVal = maxCount + 2.0;
+
+    final currentSpeed = counts.last * (60 ~/ _intervalSeconds);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: widget.cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: widget.isDark ? Colors.white10 : Colors.blueGrey.shade50),
+        boxShadow: [
+          BoxShadow(
+            color: widget.isDark ? Colors.black12 : Colors.blueGrey.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Live Database Sync Load',
+                    style: widget.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Realtime updates across all collars in RTDB',
+                    style: TextStyle(
+                      color: widget.isDark ? Colors.blueGrey.shade300 : Colors.blueGrey.shade500,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: const BoxDecoration(
+                      color: Colors.tealAccent,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${currentSpeed.toInt()} req/min',
+                    style: const TextStyle(
+                      color: Colors.teal,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          
+          SizedBox(
+            height: 170,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: LineChart(
+                LineChartData(
+                  lineTouchData: LineTouchData(
+                    touchTooltipData: LineTouchTooltipData(
+                      getTooltipColor: (touchedSpot) => widget.isDark ? const Color(0xFF334155) : Colors.teal.shade50,
+                      tooltipRoundedRadius: 8,
+                      getTooltipItems: (List<LineBarSpot> touchedSpots) {
+                        return touchedSpots.map((barSpot) {
+                          return LineTooltipItem(
+                            '${barSpot.y.toInt()} sync updates',
+                            TextStyle(
+                              color: widget.isDark ? Colors.white : Colors.teal.shade900,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          );
+                        }).toList();
+                      },
+                    ),
+                    handleBuiltInTouches: true,
+                  ),
+                  gridData: FlGridData(
+                    show: true,
+                    drawVerticalLine: true,
+                    getDrawingHorizontalLine: (value) => FlLine(
+                      color: widget.isDark ? Colors.white10 : Colors.grey.shade200,
+                      strokeWidth: 1,
+                    ),
+                    getDrawingVerticalLine: (value) => FlLine(
+                      color: widget.isDark ? Colors.white10 : Colors.grey.shade200,
+                      strokeWidth: 1,
+                    ),
+                  ),
+                  titlesData: FlTitlesData(
+                    show: true,
+                    leftTitles: AxisTitles(
+                      axisNameWidget: const Text(
+                        'Updates Count',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.teal,
+                        ),
+                      ),
+                      axisNameSize: 12,
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 28,
+                        interval: (maxYVal / 4).clamp(1.0, 100.0),
+                        getTitlesWidget: (value, meta) {
+                          if (value % 1 != 0) return const SizedBox.shrink();
+                          return SideTitleWidget(
+                            meta: meta,
+                            space: 6,
+                            child: Text(
+                              value.toInt().toString(),
+                              style: TextStyle(
+                                color: Colors.grey.shade500,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    bottomTitles: AxisTitles(
+                      axisNameWidget: const Text(
+                        'Time Offset (seconds)',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.teal,
+                        ),
+                      ),
+                      axisNameSize: 12,
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 22,
+                        interval: 1,
+                        getTitlesWidget: (value, meta) {
+                          final index = value.toInt();
+                          String label = '';
+                          switch (index) {
+                            case 0: label = '-60'; break;
+                            case 1: label = '-50'; break;
+                            case 2: label = '-40'; break;
+                            case 3: label = '-30'; break;
+                            case 4: label = '-20'; break;
+                            case 5: label = '-10'; break;
+                            case 6: label = 'Now'; break;
+                            case 7: label = '10s'; break;
+                          }
+                          return SideTitleWidget(
+                            meta: meta,
+                            space: 6,
+                            fitInside: SideTitleFitInsideData.fromTitleMeta(meta, enabled: true),
+                            child: Text(
+                              label,
+                              style: TextStyle(
+                                color: Colors.grey.shade500,
+                                fontSize: 8.5,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  ),
+                  borderData: FlBorderData(
+                    show: true,
+                    border: Border(
+                      bottom: BorderSide(
+                        color: widget.isDark ? Colors.white10 : Colors.grey.shade300,
+                        width: 1,
+                      ),
+                      left: BorderSide(
+                        color: widget.isDark ? Colors.white10 : Colors.grey.shade300,
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                  minX: 0,
+                  maxX: (_intervalsCount - 1).toDouble(),
+                  minY: 0,
+                  maxY: maxYVal,
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: List.generate(_intervalsCount, (i) => FlSpot(i.toDouble(), counts[i])),
+                      isCurved: true,
+                      gradient: const LinearGradient(
+                        colors: [Colors.tealAccent, Colors.teal],
+                      ),
+                      barWidth: 4,
+                      isStrokeCapRound: true,
+                      dotData: const FlDotData(show: true),
+                      belowBarData: BarAreaData(
+                        show: true,
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.teal.withOpacity(0.18),
+                            Colors.teal.withOpacity(0.0),
+                          ],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Cumulative Sync Packets: $_totalPackets',
+                style: TextStyle(
+                  color: widget.isDark ? Colors.blueGrey.shade300 : Colors.blueGrey.shade600,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: _isGeneratingPdf ? null : () => _generatePdfReport(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal.shade700,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                icon: _isGeneratingPdf
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Icon(Icons.picture_as_pdf, size: 14),
+                label: Text(
+                  _isGeneratingPdf ? 'Generating...' : 'PDF Report',
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
           ),
         ],
       ),
