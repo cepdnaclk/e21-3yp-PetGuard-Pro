@@ -7,4 +7,5 @@ class Routes {
   static const String activityDashboard = '/activity-dashboard';
   static const String userProfile = '/user-profile';
   static const String settings = '/settings';
+  static const String helpSupport = '/help-support';
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../tabs/admin_home_tab.dart';
 import '../tabs/user_management_tab.dart';
+import '../tabs/support_tickets_tab.dart';
 import '../widgets/admin_app_bar.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
@@ -17,6 +18,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   final List<Widget> _screens = [
     AdminHomeTab(),
     UserManagementTab(),
+    const SupportTicketsTab(),
   ];
 
   void _onItemTapped(int index) {
@@ -41,6 +43,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Users'),
+          BottomNavigationBarItem(icon: Icon(Icons.support_agent), label: 'Support'),
         ],
       ),
     );
