@@ -403,11 +403,52 @@ class _StatusBannerState extends State<_StatusBanner> {
     );
   }
 
+  int? _getLatestTimestampMs(Map<dynamic, dynamic>? data) {
+    if (data == null) return null;
+
+    // 1. Try health timestamp
+    final healthMap = data['health'] as Map?;
+    final healthTs = healthMap?['timestamp'];
+    if (healthTs != null) {
+      if (healthTs is int) return healthTs;
+      final parsed = DateTime.tryParse(healthTs.toString());
+      if (parsed != null) return parsed.millisecondsSinceEpoch;
+    }
+
+    // 2. Try activity current timestamp
+    final activityMap = data['activity'] as Map?;
+    final currentActMap = activityMap?['current'] as Map?;
+    final actTs = currentActMap?['timestamp'];
+    if (actTs != null) {
+      if (actTs is int) return actTs;
+      final parsed = DateTime.tryParse(actTs.toString());
+      if (parsed != null) return parsed.millisecondsSinceEpoch;
+    }
+
+    // 3. Try root timestamp
+    final rootTs = data['timestamp'];
+    if (rootTs != null) {
+      if (rootTs is int) return rootTs;
+      final parsed = DateTime.tryParse(rootTs.toString());
+      if (parsed != null) return parsed.millisecondsSinceEpoch;
+    }
+
+    return null;
+  }
+
   Widget _buildDashboardContent(
       BuildContext context, Map<dynamic, dynamic>? data, bool isDark) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    final bool isOnline = data != null;
+    final latestTsMs = _getLatestTimestampMs(data);
+    bool isOnline = false;
+    if (latestTsMs != null) {
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      final diffSeconds = (nowMs - latestTsMs).abs() / 1000;
+      isOnline = diffSeconds <= 60; // 60 seconds threshold for active telemetry
+    } else {
+      isOnline = data != null;
+    }
     int batteryPercent = 100;
     int heartRate = 0;
     double temp = 0.0;
