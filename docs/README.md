@@ -46,10 +46,10 @@ Pet owners face major challenges in ensuring the safety and health of their pets
 PetGuard Pro follows a **device–cloud–mobile architecture**:
 
 - **Smart Pet Collar** collects location, activity, and health data using onboard sensors.
-- **Cloud Backend (AWS)** securely receives, processes, and stores data while handling alerts and scalability.
+- **Cloud Backend (Firebase)** securely receives, processes, and stores data while handling alerts and scalability.
 - **Mobile Application (Flutter)** allows pet owners to monitor their pets in real time and receive notifications.
 
-Communication between the collar and cloud is handled using **MQTT**, while secure **HTTPS** APIs serve the mobile application.
+Communication between the collar and cloud is handled using HTTPS/WebSockets, while secure REST APIs serve the mobile application.
 
 ---
 
@@ -78,14 +78,13 @@ Communication between the collar and cloud is handled using **MQTT**, while secu
   - Alert notifications and history logs  
 
 #### Cloud Backend
-- **Platform:** AWS  
+- **Platform:** Firebase  
 - **Services Used:**  
-  - AWS IoT Core (MQTT communication)  
-  - API Gateway & Lambda (application logic)  
-  - DynamoDB & S3 (data storage)  
-  - Cognito (authentication)  
-  - SNS (notifications & alerts)  
-  - CloudWatch (monitoring)  
+  - Realtime Database (telemetry streaming)  
+  - Cloud Functions (serverless logic & alerts)  
+  - Cloud Firestore (configurations & metadata)  
+  - Firebase Authentication (secure access setup)  
+  - Cloud Messaging (push notifications)  
 
 ---
 

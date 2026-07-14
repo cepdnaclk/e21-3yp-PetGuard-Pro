@@ -1,0 +1,938 @@
+---
+layout: null
+---
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PetGuard Pro — Smart IoT-Based Pet Monitoring & Safety System</title>
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <!-- Link to External CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="gbg"></div>
+
+    <!-- Top Navigation -->
+    <nav>
+        <a href="#" class="nl">
+            <div class="nav-logo-text">Pet<span>Guard</span> Pro</div>
+        </a>
+        <ul class="nls">
+            <li><a href="#problem">Problem</a></li>
+            <li><a href="#architecture">Architecture</a></li>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#timeline">Timeline</a></li>
+            <li><a href="#budget">Budget</a></li>
+            <li><a href="#team">Team</a></li>
+        </ul>
+        <div class="nb">3YP · E/21</div>
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark/light mode"
+            title="Toggle dark/light mode">
+            <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="5" />
+                <line x1="12" y1="1" x2="12" y2="3" />
+                <line x1="12" y1="21" x2="12" y2="23" />
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                <line x1="1" y1="12" x2="3" y2="12" />
+                <line x1="21" y1="12" x2="23" y2="12" />
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+            </svg>
+            <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+        </button>
+        <button class="nav-hamburger" id="nav-hamburger" aria-label="Open navigation menu" aria-expanded="false">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </nav>
+
+    <!-- Asymmetrical Hero Split Section -->
+    <section id="hero">
+        <div class="con hero-inner">
+            <div class="hleft">
+                <div class="ht">IoT · Real-Time Vitals · Firebase Cloud · Flutter</div>
+                <h1><span class="g">Pet</span><span class="s">Guard</span> Pro<span class="sub typewriter-text"></span>
+                </h1>
+                <p class="hd">An intelligent, low-cost pet safety system combining an onboard telemetry collar, Firebase
+                    cloud syncing, and a feature-rich Flutter app with safe-zone trackers, vitals streams, and PDF
+                    behavior reports.</p>
+                <div class="hb">
+                    <a href="#features" class="bp">Live Simulator</a>
+                    <a href="#architecture" class="bs">Explore Design</a>
+                </div>
+            </div>
+            <div class="hright">
+                <img src="./images/high_level_architecture.png" alt="PetGuard Pro Architecture" class="probe-img">
+            </div>
+        </div>
+
+        <div class="con">
+            <div class="hs">
+                <div class="st">
+                    <div class="sn">4</div>
+                    <div class="sl">System Layers</div>
+                </div>
+                <div class="st">
+                    <div class="sn">5</div>
+                    <div class="sl">Active Sensors</div>
+                </div>
+                <div class="st">
+                    <div class="sn">3</div>
+                    <div class="sl">Warning Levels</div>
+                </div>
+            </div>
+
+            <div class="sh">
+                <div class="sln"></div>
+                <span>SCROLL TO DISCOVER</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Problem Statement Grid Section -->
+    <section id="problem">
+        <div class="con">
+            <div class="shd rev">
+                <div class="stg">01 · Problem Statement</div>
+                <h2>Addressing Pet Safety</h2>
+                <p class="sd">Traditional tracking systems fail to provide instant safety alerts or integrated vitals
+                    context. PetGuard Pro resolves these boundaries.</p>
+            </div>
+
+            <div class="pg rev">
+                <div class="pc">
+                    <div class="pn">01 / Latency gaps</div>
+                    <h3 class="pt">High Sync Latency</h3>
+                    <p class="px">Consumer pet tracking collars typically rely on periodic updates, leaving large
+                        windows where pets are unaccounted for. We stream telemetry continuously through Firebase RTDB.
+                    </p>
+                </div>
+
+                <div class="pc">
+                    <div class="pn">02 / Delayed notifications</div>
+                    <h3 class="pt">Late Escape Awareness</h3>
+                    <p class="px">Owners often learn of escapes long after boundary breaches. Our system immediately
+                        triggers a piezo collar alarm buzzer to startle pets and halt further escapes.</p>
+                </div>
+
+                <div class="pc">
+                    <div class="pn">03 / Inadequate context</div>
+                    <h3 class="pt">No Health Insights</h3>
+                    <p class="px">Standard locators offer no vitals indicators. We mount temperature probes (MLX90614)
+                        and pulse registers (MAX30102) to track thermal levels and heart rates alongside coordinates.
+                    </p>
+                </div>
+
+                <div class="pc">
+                    <div class="pn">04 / Stale state dashboards</div>
+                    <h3 class="pt">Undetected Disconnects</h3>
+                    <p class="px">If collar units run out of battery or lose signal, applications still show stale
+                        values. Our client checks the age of incoming database packets, updating status flags instantly.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Horizontal Tabs Architecture Section -->
+    <section id="architecture">
+        <div class="con">
+            <div class="shd rev">
+                <div class="stg">02 · Solution Architecture</div>
+                <h2>System Infrastructure</h2>
+                <p class="sd">An itemized breakdown of our device-cloud-mobile architecture separated into four
+                    technical layers.</p>
+            </div>
+
+            <!-- Horizontal Tabs -->
+            <div class="arc-tabs rev">
+                <div class="arc-tab active" onclick="arcSwitchTab(0)">
+                    <div class="arc-tab-num">01</div>
+                    <div class="arc-tab-name">Hardware</div>
+                    <div class="arc-tab-sub">Embedded Collar</div>
+                </div>
+                <div class="arc-tab" onclick="arcSwitchTab(1)">
+                    <div class="arc-tab-num">02</div>
+                    <div class="arc-tab-name">Backend</div>
+                    <div class="arc-tab-sub">Firebase Cloud</div>
+                </div>
+                <div class="arc-tab" onclick="arcSwitchTab(2)">
+                    <div class="arc-tab-num">03</div>
+                    <div class="arc-tab-name">Interface</div>
+                    <div class="arc-tab-sub">Flutter Client</div>
+                </div>
+                <div class="arc-tab" onclick="arcSwitchTab(3)">
+                    <div class="arc-tab-num">04</div>
+                    <div class="arc-tab-name">Security</div>
+                    <div class="arc-tab-sub">Data Access Gate</div>
+                </div>
+            </div>
+
+            <!-- Panel Areas -->
+            <div class="arc-panels rev">
+
+                <!-- Panel 01: Hardware -->
+                <div class="arc-panel active">
+                    <div class="arc-panel-hero" data-num="01">
+                        <div>
+                            <div class="arc-hero-tag">Layer 01 · Collar</div>
+                            <div class="arc-hero-title">Onboard Embedded<br>Hardware</div>
+                        </div>
+                        <div class="arc-hero-badge">ESP32 Core</div>
+                    </div>
+                    <div class="arc-panel-items">
+                        <div class="arc-pitem"><span class="arc-pitem-icon">📟</span>
+                            <div class="arc-pitem-title">ESP32 Microcontroller</div>
+                            <div class="arc-pitem-desc">Core processor managing sensor queries and cellular telemetry
+                                transmission cycles.</div><span class="arc-pitem-tag">ESP32-WROOM</span>
+                        </div>
+                        <div class="arc-pitem"><span class="arc-pitem-icon">🛰️</span>
+                            <div class="arc-pitem-title">NEO-8M GPS Module</div>
+                            <div class="arc-pitem-desc">Acquires active location data packets by locking onto global
+                                satellite positioning networks.</div><span class="arc-pitem-tag">NMEA Data</span>
+                        </div>
+                        <div class="arc-pitem"><span class="arc-pitem-icon">🌡️</span>
+                            <div class="arc-pitem-title">MLX90614 Temp Probe</div>
+                            <div class="arc-pitem-desc">Reads pet body surface temperatures, transmitting register flags
+                                over I2C lines.</div><span class="arc-pitem-tag">I2C Protocol</span>
+                        </div>
+                        <div class="arc-pitem"><span class="arc-pitem-icon">💓</span>
+                            <div class="arc-pitem-title">MAX30102 Pulse Sensor</div>
+                            <div class="arc-pitem-desc">Queries optical pulse photoplethysmography registers to extract
+                                heart rate readings.</div><span class="arc-pitem-tag">PPG Register</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel 02: Backend -->
+                <div class="arc-panel">
+                    <div class="arc-panel-hero" data-num="02">
+                        <div>
+                            <div class="arc-hero-tag">Layer 02 · Cloud Backend</div>
+                            <div class="arc-hero-title">Firebase Cloud<br>Infrastructure</div>
+                        </div>
+                        <div class="arc-hero-badge">Firebase Serverless</div>
+                    </div>
+                    <div class="arc-panel-items">
+                        <div class="arc-pitem"><span class="arc-pitem-icon">🔥</span>
+                            <div class="arc-pitem-title">Firebase RTDB</div>
+                            <div class="arc-pitem-desc">Streams live GPS coordinate paths and health vitals instantly
+                                from collar telemetry.</div><span class="arc-pitem-tag">Realtime DB</span>
+                        </div>
+                        <div class="arc-pitem"><span class="arc-pitem-icon">⚡</span>
+                            <div class="arc-pitem-title">Cloud Functions</div>
+                            <div class="arc-pitem-desc">Serverless backend logic executes behavior classification
+                                algorithms and FCM notifications.</div><span class="arc-pitem-tag">NodeJS</span>
+                        </div>
+                        <div class="arc-pitem"><span class="arc-pitem-icon">💾</span>
+                            <div class="arc-pitem-title">Firestore Store</div>
+                            <div class="arc-pitem-desc">Stores user dashboards setups, pet registry files, and support
+                                ticket history threads.</div><span class="arc-pitem-tag">NoSQL Cloud</span>
+                        </div>
+                        <div class="arc-pitem"><span class="arc-pitem-icon">🔑</span>
+                            <div class="arc-pitem-title">Firebase Auth</div>
+                            <div class="arc-pitem-desc">Manages secure sign-up, session locks, and built-in password
+                                reset services.</div><span class="arc-pitem-tag">Auth API</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel 03: Interface -->
+                <div class="arc-panel">
+                    <div class="arc-panel-hero" data-num="03">
+                        <div>
+                            <div class="arc-hero-tag">Layer 03 · Mobile</div>
+                            <div class="arc-hero-title">Flutter Mobile<br>Dashboard App</div>
+                        </div>
+                        <div class="arc-hero-badge">Flutter SDK</div>
+                    </div>
+                    <div class="arc-panel-items">
+                        <div class="arc-pitem"><span class="arc-pitem-icon">📈</span>
+                            <div class="arc-pitem-title">Real-Time Vitals Stream</div>
+                            <div class="arc-pitem-desc">Translates incoming database streams into live temperature
+                                indices and pulse graphs.</div><span class="arc-pitem-tag">StreamProvider</span>
+                        </div>
+                        <div class="arc-pitem"><span class="arc-pitem-icon">🗺️</span>
+                            <div class="arc-pitem-title">Google Maps Geofence</div>
+                            <div class="arc-pitem-desc">Draws custom coordinate boundaries and highlights active paths
+                                on a maps layer.</div><span class="arc-pitem-tag">Google Maps API</span>
+                        </div>
+                        <div class="arc-pitem"><span class="arc-pitem-icon">📄</span>
+                            <div class="arc-pitem-title">PDF Exporters</div>
+                            <div class="arc-pitem-desc">Compiles today's path coordinates tables, average vitals levels,
+                                and step counts.</div><span class="arc-pitem-tag">pdf Package</span>
+                        </div>
+                        <div class="arc-pitem"><span class="arc-pitem-icon">🎫</span>
+                            <div class="arc-pitem-title">Support Tickets Client</div>
+                            <div class="arc-pitem-desc">Connects owners directly to a tickets management desk to query
+                                help articles.</div><span class="arc-pitem-tag">Firestore Sync</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel 04: Security -->
+                <div class="arc-panel">
+                    <div class="arc-panel-hero" data-num="04">
+                        <div>
+                            <div class="arc-hero-tag">Layer 04 · Security</div>
+                            <div class="arc-hero-title">Security &amp; Encryption<br>Boundaries</div>
+                        </div>
+                        <div class="arc-hero-badge">Access Protection</div>
+                    </div>
+                    <div class="arc-panel-items">
+                        <div class="arc-pitem"><span class="arc-pitem-icon">🔒</span>
+                            <div class="arc-pitem-title">JWT Session Keys</div>
+                            <div class="arc-pitem-desc">Secures mobile client REST transactions with Firebase
+                                authentication.</div><span class="arc-pitem-tag">Firebase Auth</span>
+                        </div>
+                        <div class="arc-pitem"><span class="arc-pitem-icon">🚧</span>
+                            <div class="arc-pitem-title">Collar Isolation</div>
+                            <div class="arc-pitem-desc">Hardware logs write only to designated paths based on
+                                authenticated pet ownership.</div><span class="arc-pitem-tag">Database Rules</span>
+                        </div>
+                        <div class="arc-pitem"><span class="arc-pitem-icon">🔑</span>
+                            <div class="arc-pitem-title">Firebase SSL</div>
+                            <div class="arc-pitem-desc">All telemetry streams use secure HTTPS and SSL encryption during
+                                transit.</div><span class="arc-pitem-tag">HTTPS · SSL</span>
+                        </div>
+                        <div class="arc-pitem"><span class="arc-pitem-icon">🔔</span>
+                            <div class="arc-pitem-title">Firebase Cloud Messaging</div>
+                            <div class="arc-pitem-desc">Instantly triggers push notifications on owner devices when
+                                boundaries are crossed.</div><span class="arc-pitem-tag">FCM API</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Data Flow Image -->
+    <section id="techstack">
+        <div class="con">
+            <div class="shd rev">
+                <div class="stg">03 · Tech Stack</div>
+                <h2>Project Data Flow</h2>
+                <p class="sd">How the smart collar coordinates telemetry streams directly with Firebase Realtime
+                    Database to feed the owner app.</p>
+            </div>
+
+            <div class="tsf-img rev">
+                <img src="./images/high_level_architecture.png" alt="PetGuard Pro System Data Flow Map"
+                    class="tsf-diagram">
+            </div>
+        </div>
+    </section>
+
+    <!-- Interactive Features / Smartphone Simulator Section -->
+    <section id="features">
+        <div class="con">
+            <div class="shd rev">
+                <div class="stg">04 · Core Features</div>
+                <h2>Functional Capabilities</h2>
+                <p class="sd">Interact with the features below to preview the mobile dashboard feedback on your pet
+                    parents application.</p>
+            </div>
+
+            <div class="fl2 rev">
+
+                <!-- Left: Smartphone UI Mockup -->
+                <div class="fv">
+                    <div class="virtual-phone">
+                        <div class="phone-screen">
+                            <div class="phone-header">
+                                <span class="phone-header-title">PetGuard Pro</span>
+                                <div class="phone-header-status" id="sim-status-ind"><span
+                                        class="status-dot"></span><span id="sim-status-txt">Collar Status: Online</span>
+                                </div>
+                            </div>
+
+                            <!-- Virtual mini coordinate map -->
+                            <div class="phone-map-card">
+                                <div class="phone-map-bg" id="sim-map-bg"></div>
+                                <div class="phone-fence"></div>
+                                <div class="phone-map-marker" id="sim-map-marker"></div>
+                                <div class="phone-fence-alert" id="sim-fence-alert">GEOFENCE ESCAPE</div>
+                            </div>
+
+                            <!-- Vitals values -->
+                            <div class="phone-vitals-row" id="sim-vitals-row">
+                                <div class="phone-vital-card">
+                                    <span class="phone-vital-lbl">Heart Rate</span>
+                                    <div class="phone-vital-val" id="sim-hr-val">72 BPM</div>
+                                    <span class="phone-vital-sub">Normal index</span>
+                                </div>
+                                <div class="phone-vital-card">
+                                    <span class="phone-vital-lbl">Body Temp</span>
+                                    <div class="phone-vital-val" id="sim-temp-val">38.2 °C</div>
+                                    <span class="phone-vital-sub">Surface therm</span>
+                                </div>
+                            </div>
+
+                            <!-- Steps / Activity widget -->
+                            <div class="phone-activity-card" id="sim-activity-card">
+                                <div class="phone-activity-icon" id="sim-act-icon">💤</div>
+                                <div class="phone-activity-det">
+                                    <div class="phone-vital-lbl" id="sim-steps-sub">Daily goal: 5,000 steps</div>
+                                    <div class="phone-vital-val" id="sim-steps-val" style="font-size: 16px;">2450 steps
+                                    </div>
+                                    <span style="font-size: 11px; font-weight:700; color:var(--accent);"
+                                        id="sim-act-name">Resting</span>
+                                    <p style="font-size: 10px; color:#94a3b8;" id="sim-act-desc">Pet behavior classified
+                                        as resting/sleeping</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Interactive Accordion vertical list -->
+                <div class="flist">
+                    <div class="fi act" id="feat-connection">
+                        <h3 class="fit">⚡ Onboard Dual Connection</h3>
+                        <p class="fd">Collar automatically synchronizes local telemetry data packet frames using home
+                            Wi-Fi or fallbacks onto SIM800L cellular lines when walking outside.</p>
+                    </div>
+
+                    <div class="fi" id="feat-vitals">
+                        <h3 class="fit">💓 Real-Time Vitals Tracking</h3>
+                        <p class="fd">Direct registers readings map optical heart rates and IR surface temperatures.
+                            Triggers notifications if indicators pass safety limits.</p>
+                    </div>
+
+                    <div class="fi" id="feat-steps">
+                        <h3 class="fit">👟 Accelerometer Step Counting</h3>
+                        <p class="fd">Translates 3-axis MPU6050 accelerometer ticks directly into live step counting
+                            goals, monitoring active play metrics on the dashboard.</p>
+                    </div>
+
+                    <div class="fi" id="feat-fence">
+                        <h3 class="fit">🚧 Dynamic Virtual Fence</h3>
+                        <p class="fd">Compares incoming coordinates against boundary circles. Escalates alerts and
+                            triggers hardware buzzer alarms if the perimeter is crossed.</p>
+                    </div>
+
+                    <div class="fi" id="feat-reports">
+                        <h3 class="fit">📊 Behavior Analytics PDF Reports</h3>
+                        <p class="fd">Compiles today's path coordinates records, average vitals levels, and step counts
+                            into an exportable PDF behavioral summary report.</p>
+                    </div>
+
+                    <div class="fi" id="feat-tickets">
+                        <h3 class="fit">🎫 Support Tickets Desk</h3>
+                        <p class="fd">If collar connections drop, status updates to offline. The built-in desk logs
+                            tickets in Firestore to handle issues directly.</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Gantt Chart Timeline Section -->
+    <section id="timeline">
+        <div class="con">
+            <div class="shd rev">
+                <div class="stg">05 · Project Timeline</div>
+                <h2>Development Roadmap</h2>
+                <p class="sd">A 21-week implementation path broken down into key developmental milestones.</p>
+            </div>
+
+            <!-- Legend -->
+            <div class="g-legend rev">
+                <div class="g-legend-item"><span class="g-legend-dot" style="background:var(--gms1)"></span>Milestone
+                    01: Proposal</div>
+                <div class="g-legend-item"><span class="g-legend-dot" style="background:var(--gms2)"></span>Milestone
+                    02: Hardware Setup</div>
+                <div class="g-legend-item"><span class="g-legend-dot" style="background:var(--gms3)"></span>Milestone
+                    03: Prototype</div>
+                <div class="g-legend-item"><span class="g-legend-dot" style="background:var(--gms4)"></span>Milestone
+                    04: Completion</div>
+                <div class="g-legend-item"><span class="g-legend-dot"
+                        style="background:var(--t2); opacity:0.6;"></span>Completed</div>
+            </div>
+
+            <!-- Timeline Gantt Grid -->
+            <div class="gantt-wrap rev">
+                <div class="g-row g-head">
+                    <div class="gantt-lbl">Development Phase</div>
+                    <div class="gantt-col">Wk 1–3</div>
+                    <div class="gantt-col">Wk 4–6</div>
+                    <div class="gantt-col">Wk 7–9</div>
+                    <div class="gantt-col">Wk 10–12</div>
+                    <div class="gantt-col">Wk 13–15</div>
+                    <div class="gantt-col">Wk 16–18</div>
+                    <div class="gantt-col">Wk 19–21</div>
+                </div>
+
+                <!-- Milestone 01 -->
+                <div class="g-row">
+                    <div class="gantt-msrow ms1">Milestone 01 — Project Planning &amp; Concept Proposal</div>
+                </div>
+                <div class="g-row g-task-row">
+                    <div class="gantt-lbl">1. High-Level Concept Design</div>
+                    <div class="gantt-col"><span class="gbar ms1 done"></span></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                </div>
+                <div class="g-row g-task-row">
+                    <div class="gantt-lbl">2. Hardware Components Selection</div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"><span class="gbar ms1 done"></span></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                </div>
+                <div class="g-row g-task-row">
+                    <div class="gantt-lbl">3. Project Proposal Presentation</div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"><span class="gbar ms1 done"></span></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                </div>
+
+                <!-- Milestone 02 -->
+                <div class="g-row">
+                    <div class="gantt-msrow ms2">Milestone 02 — Hardware Prototyping &amp; Setup</div>
+                </div>
+                <div class="g-row g-task-row">
+                    <div class="gantt-lbl">1. Sensors Breadboard Integration</div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"><span class="gbar ms2 done"></span></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                </div>
+                <div class="g-row g-task-row">
+                    <div class="gantt-lbl">2. Calibration &amp; Test Code Setup</div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"><span class="gbar ms2 done"></span></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                </div>
+
+                <!-- Milestone 03 -->
+                <div class="g-row">
+                    <div class="gantt-msrow ms3">Milestone 03 — Working Prototype Development</div>
+                </div>
+                <div class="g-row g-task-row">
+                    <div class="gantt-lbl">1. PCB Design &amp; Collar Fabrication</div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"><span class="gbar ms3 done"></span></div>
+                    <div class="gantt-col"></div>
+                </div>
+                <div class="g-row g-task-row">
+                    <div class="gantt-lbl">2. Firebase Database Setup</div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"><span class="gbar ms3 done"></span></div>
+                    <div class="gantt-col"></div>
+                </div>
+                <div class="g-row g-task-row">
+                    <div class="gantt-lbl">3. Flutter Mobile Application Vitals Stream</div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"><span class="gbar ms3 done"></span></div>
+                </div>
+
+                <!-- Milestone 04 -->
+                <div class="g-row">
+                    <div class="gantt-msrow ms4">Milestone 04 — Dynamic Analytics, PDF Export &amp; Finalization</div>
+                </div>
+                <div class="g-row g-task-row">
+                    <div class="gantt-lbl">1. PDF Exporter &amp; Behavior Logs</div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"><span class="gbar ms4 done"></span></div>
+                </div>
+                <div class="g-row g-task-row">
+                    <div class="gantt-lbl">2. Support Desk &amp; Offline Dynamic Logic</div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"><span class="gbar ms4 done"></span></div>
+                </div>
+                <div class="g-row g-task-row">
+                    <div class="gantt-lbl">3. Web Deployment &amp; Final Review</div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"></div>
+                    <div class="gantt-col"><span class="gbar ms4"></span></div>
+                </div>
+            </div>
+
+            <div class="g-footer rev">
+                <span class="g-footer-note">21-week developmental roadmap &nbsp;·&nbsp; 4 milestones &nbsp;·&nbsp; 11
+                    integration units</span>
+                <span class="g-done-badge">Active Sprint: Final Deployment</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Project Budget Section -->
+    <section id="budget">
+        <div class="con">
+            <div class="shd rev">
+                <div class="stg">06 · Budget</div>
+                <h2>Project Budget</h2>
+                <p class="sd">Estimated components cost breakdown for a single PetGuard Pro collar prototype in Sri
+                    Lankan Rupees (LKR).</p>
+            </div>
+
+            <div class="bgt-wrap rev">
+                <table class="bgt">
+                    <thead>
+                        <tr>
+                            <th class="bgt-name">Hardware Component Description</th>
+                            <th>Quantity</th>
+                            <th>Unit Cost (LKR)</th>
+                            <th>Price (LKR)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="bgt-item">ESP32 Core Microcontroller (ESP32-WROOM-32)</td>
+                            <td>1</td>
+                            <td>1,500.00</td>
+                            <td>1,500.00</td>
+                        </tr>
+                        <tr>
+                            <td class="bgt-item">NEO-8M GPS Satellite Positioning Module</td>
+                            <td>1</td>
+                            <td>3,000.00</td>
+                            <td>3,000.00</td>
+                        </tr>
+                        <tr>
+                            <td class="bgt-item">SIM800L GPRS Cellular module</td>
+                            <td>1</td>
+                            <td>2,000.00</td>
+                            <td>2,000.00</td>
+                        </tr>
+                        <tr>
+                            <td class="bgt-item">Health Sensors Bundle (MLX90614, MAX30102, MPU6050)</td>
+                            <td>1 set</td>
+                            <td>3,300.00</td>
+                            <td>3,300.00</td>
+                        </tr>
+                        <tr>
+                            <td class="bgt-item">1500mAh 3.7V Rechargeable Li-Po battery pack</td>
+                            <td>1</td>
+                            <td>2,200.00</td>
+                            <td>2,200.00</td>
+                        </tr>
+                        <tr>
+                            <td class="bgt-item">Buck Converter charging systems (USB-C support)</td>
+                            <td>1</td>
+                            <td>1,000.00</td>
+                            <td>1,000.00</td>
+                        </tr>
+                        <tr>
+                            <td class="bgt-item">Piezo Alarm Buzzer + Status Indicator LEDs</td>
+                            <td>1 set</td>
+                            <td>150.00</td>
+                            <td>150.00</td>
+                        </tr>
+                        <tr>
+                            <td class="bgt-item">Collar Enclosure shell packaging</td>
+                            <td>1</td>
+                            <td>800.00</td>
+                            <td>800.00</td>
+                        </tr>
+                        <tr>
+                            <td class="bgt-item">Custom PCB Fabrications, connectors, and wiring terminals</td>
+                            <td>1 set</td>
+                            <td>1,000.00</td>
+                            <td>1,000.00</td>
+                        </tr>
+                        <tr>
+                            <td class="bgt-item">Pre-loaded mobile carrier SIM cards</td>
+                            <td>1</td>
+                            <td>500.00</td>
+                            <td>500.00</td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr class="bgt-total">
+                            <td colspan="3">Grand Total</td>
+                            <td>15,450.00 LKR</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Team Members Profile Section -->
+    <section id="team">
+        <div class="con">
+            <div class="shd rev">
+                <div class="stg">07 · The Team</div>
+                <h2>People Behind PetGuard Pro</h2>
+                <p class="sd">Department of Computer Engineering, University of Peradeniya (E21 batch).</p>
+            </div>
+
+            <!-- Team members -->
+            <div class="tm-group rev">
+                <div class="tm-group-label">Team Members</div>
+                <div class="tm-row">
+                    <div class="tm-card">
+                        <div class="tm-avatar-wrap">
+                            <img src="./images/e21106.jpg" alt="Bingusari Dissanayaka" class="tm-avatar-img"
+                                onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                            <span class="tm-avatar-fallback">BD</span>
+                        </div>
+                        <div class="tm-name">Bingusari Dissanayaka</div>
+                        <div class="tm-id">E/21/106</div>
+                        <a href="https://github.com/cepdnaclk/e21-3yp-PetGuard-Pro" class="tm-port">ePortfolio</a>
+                        <div class="tm-links">
+                            <a href="https://github.com/cepdnaclk/e21-3yp-PetGuard-Pro" class="tm-ico"
+                                title="GitHub"><svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.866-.013-1.7-2.782.603-3.369-1.342-3.369-1.342-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836a9.59 9.59 0 012.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
+                                </svg></a>
+                            <a href="mailto:e21106@eng.pdn.ac.lk" class="tm-ico" title="Email"><svg viewBox="0 0 24 24"
+                                    fill="currentColor">
+                                    <path
+                                        d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+                                </svg></a>
+                        </div>
+                    </div>
+
+                    <div class="tm-card">
+                        <div class="tm-avatar-wrap">
+                            <img src="./images/e21137.jpg" alt="Chandur Fernando" class="tm-avatar-img"
+                                onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                            <span class="tm-avatar-fallback">CF</span>
+                        </div>
+                        <div class="tm-name">Chandur Fernando</div>
+                        <div class="tm-id">E/21/137</div>
+                        <a href="https://github.com/cepdnaclk/e21-3yp-PetGuard-Pro" class="tm-port">ePortfolio</a>
+                        <div class="tm-links">
+                            <a href="https://github.com/cepdnaclk/e21-3yp-PetGuard-Pro" class="tm-ico"
+                                title="GitHub"><svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.866-.013-1.7-2.782.603-3.369-1.342-3.369-1.342-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836a9.59 9.59 0 012.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
+                                </svg></a>
+                            <a href="mailto:e21137@eng.pdn.ac.lk" class="tm-ico" title="Email"><svg viewBox="0 0 24 24"
+                                    fill="currentColor">
+                                    <path
+                                        d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+                                </svg></a>
+                        </div>
+                    </div>
+
+                    <div class="tm-card">
+                        <div class="tm-avatar-wrap">
+                            <img src="./images/e21350.jpg" alt="Prashan Samarawickrama" class="tm-avatar-img"
+                                onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                            <span class="tm-avatar-fallback">PS</span>
+                        </div>
+                        <div class="tm-name">Prashan Samarawickrama</div>
+                        <div class="tm-id">E/21/350</div>
+                        <a href="https://github.com/cepdnaclk/e21-3yp-PetGuard-Pro" class="tm-port">ePortfolio</a>
+                        <div class="tm-links">
+                            <a href="https://github.com/cepdnaclk/e21-3yp-PetGuard-Pro" class="tm-ico"
+                                title="GitHub"><svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.866-.013-1.7-2.782.603-3.369-1.342-3.369-1.342-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836a9.59 9.59 0 012.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
+                                </svg></a>
+                            <a href="mailto:e21350@eng.pdn.ac.lk" class="tm-ico" title="Email"><svg viewBox="0 0 24 24"
+                                    fill="currentColor">
+                                    <path
+                                        d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+                                </svg></a>
+                        </div>
+                    </div>
+
+                    <div class="tm-card">
+                        <div class="tm-avatar-wrap">
+                            <img src="./images/e21428.jpg" alt="Savin Weerasooriya" class="tm-avatar-img"
+                                onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                            <span class="tm-avatar-fallback">SW</span>
+                        </div>
+                        <div class="tm-name">Savin Weerasooriya</div>
+                        <div class="tm-id">E/21/428</div>
+                        <a href="https://github.com/cepdnaclk/e21-3yp-PetGuard-Pro" class="tm-port">ePortfolio</a>
+                        <div class="tm-links">
+                            <a href="https://github.com/cepdnaclk/e21-3yp-PetGuard-Pro" class="tm-ico"
+                                title="GitHub"><svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.866-.013-1.7-2.782.603-3.369-1.342-3.369-1.342-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836a9.59 9.59 0 012.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
+                                </svg></a>
+                            <a href="mailto:e21428@eng.pdn.ac.lk" class="tm-ico" title="Email"><svg viewBox="0 0 24 24"
+                                    fill="currentColor">
+                                    <path
+                                        d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+                                </svg></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Course Supervisors -->
+            <div class="tm-group tm-supervisor-group rev">
+                <div class="tm-group-label">Supervisors</div>
+                <div class="tm-row tm-row-solo">
+                    <div class="tm-card">
+                        <div class="tm-avatar-wrap">
+                            <img src="./images/yasodha-vimukthi.jpeg" alt="Ms. Yasodha Vimukthi" class="tm-avatar-img"
+                                onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                            <span class="tm-avatar-fallback">YV</span>
+                        </div>
+                        <div class="tm-name">Ms. Yasodha Vimukthi</div>
+                        <div class="tm-id">Project Supervisor</div>
+                        <div class="tm-links">
+                            <a href="mailto:yasodhav@eng.pdn.ac.lk" class="tm-ico" title="Email"><svg
+                                    viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+                                </svg></a>
+                        </div>
+                    </div>
+
+                    <div class="tm-card">
+                        <div class="tm-avatar-wrap">
+                            <img src="./images/isuru-nawinne.png" alt="Dr. Isuru Nawinne" class="tm-avatar-img"
+                                onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                            <span class="tm-avatar-fallback">IN</span>
+                        </div>
+                        <div class="tm-name">Dr. Isuru Nawinne</div>
+                        <div class="tm-id">Project Supervisor</div>
+                        <div class="tm-links">
+                            <a href="mailto:isurunawinne@eng.pdn.ac.lk" class="tm-ico" title="Email"><svg
+                                    viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+                                </svg></a>
+                        </div>
+                    </div>
+
+                    <div class="tm-card">
+                        <div class="tm-avatar-wrap">
+                            <img src="./images/thilina-gunarathne.jpg" alt="Mr. Thilina Gunarathne"
+                                class="tm-avatar-img"
+                                onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                            <span class="tm-avatar-fallback">TG</span>
+                        </div>
+                        <div class="tm-name">Mr. Thilina Gunarathne</div>
+                        <div class="tm-id">Project Supervisor</div>
+                        <div class="tm-links">
+                            <a href="mailto:thilinag@eng.pdn.ac.lk" class="tm-ico" title="Email"><svg
+                                    viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+                                </svg></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer Area -->
+    <footer>
+        <div class="con">
+            <div class="ftr-grid">
+                <!-- Brand -->
+                <div class="ftr-brand">
+                    <div class="ftr-logos">
+                        <div class="ftr-site-name">Pet<span>Guard</span> Pro</div>
+                    </div>
+                    <p class="ftr-desc">An intelligent, low-cost IoT platform for real-time safe-zone monitoring and
+                        health behavior tracking for pet parents.</p>
+                </div>
+
+                <!-- Links Columns -->
+                <div class="ftr-cols">
+                    <div class="ftr-col">
+                        <p class="ftr-heading">Reach Us</p>
+                        <address class="ftr-address">
+                            <p>Dept. of Computer Engineering<br>Faculty of Engineering<br>University of Peradeniya, Sri
+                                Lanka.</p>
+                            <p><a href="mailto:cepdnaclk@eng.pdn.ac.lk" class="ftr-link">cepdnaclk@eng.pdn.ac.lk</a></p>
+                        </address>
+                    </div>
+
+                    <div class="ftr-col">
+                        <p class="ftr-heading">Navigation</p>
+                        <ul class="ftr-nav">
+                            <li><a href="#problem" class="ftr-link">Problem</a></li>
+                            <li><a href="#architecture" class="ftr-link">Architecture</a></li>
+                            <li><a href="#features" class="ftr-link">Features</a></li>
+                            <li><a href="#timeline" class="ftr-link">Timeline</a></li>
+                            <li><a href="#budget" class="ftr-link">Budget</a></li>
+                        </ul>
+                    </div>
+
+                    <div class="ftr-col">
+                        <p class="ftr-heading">Research Domains</p>
+                        <ul class="ftr-nav">
+                            <li><span class="ftr-link">IoT &amp; Embedded Systems</span></li>
+                            <li><span class="ftr-link">Real-time Health Vitals</span></li>
+                            <li><span class="ftr-link">Mobile Applications (Flutter)</span></li>
+                            <li><span class="ftr-link">Firebase Cloud Platforms</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ftr-bottom">
+                <p class="ftr-copy">Copyright &copy; 2026 PetGuard Pro · 3YP Project · Faculty of Engineering,
+                    University of Peradeniya. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Link to External JavaScript -->
+    <script src="script.js"></script>
+</body>
+
+</html>
