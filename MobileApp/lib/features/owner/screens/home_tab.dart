@@ -4,6 +4,7 @@ import '../../auth/services/pet_authorization_module.dart';
 import 'dashboard_widgets.dart';
 import 'pet_details_form_page.dart';
 import '../data/owner_repository.dart';
+import '../location/screens/dashboard_screen.dart' show LocationDashboard;
 
 const _kTeal = Color(0xFF009688);
 const _kTealLight = Color(0xFFE0F2F1);
@@ -149,8 +150,6 @@ class _PetHomeBodyState extends State<_PetHomeBody>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _Greeting(userName: widget.repository.getFirstName()),
-              const SizedBox(height: 28),
               _PetHeroCard(
                 petName: petName,
                 petSize: shortSize,
@@ -175,34 +174,7 @@ class _PetHomeBodyState extends State<_PetHomeBody>
 // UI Sub-Widgets (No Logic Changes)
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _Greeting extends StatelessWidget {
-  final String userName;
-  const _Greeting({required this.userName});
 
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Welcome back',
-          style: TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.w800,
-            color: colorScheme.onSurface,
-            letterSpacing: -0.5,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          "Here's how your pet is doing today.",
-          style: TextStyle(fontSize: 14, color: colorScheme.onSurfaceVariant),
-        ),
-      ],
-    );
-  }
-}
 
 class _PetHeroCard extends StatelessWidget {
   final String petName;
@@ -365,13 +337,10 @@ class _TypeChip extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(20)),
-        child: Text(label,
-            style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w600)),
+          color: Colors.white10,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
       );
 }
 
@@ -394,90 +363,422 @@ class _StatusBannerState extends State<_StatusBanner> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colorScheme.primaryContainer.withOpacity(0.7),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.primary.withOpacity(0.3)),
-      ),
-      child: FutureBuilder<String>(
-        future: _dbPathFuture,
-        builder: (context, pathSnapshot) {
-          final dbPath = pathSnapshot.data;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-          if (pathSnapshot.connectionState == ConnectionState.waiting ||
-              pathSnapshot.hasError ||
-              dbPath == null ||
-              dbPath.isEmpty) {
-            return _buildContentRow(context, null);
-          }
+    return FutureBuilder<String>(
+      future: _dbPathFuture,
+      builder: (context, pathSnapshot) {
+        final dbPath = pathSnapshot.data;
 
-          return StreamBuilder<DatabaseEvent>(
-            stream: FirebaseDatabase.instance.ref('$dbPath/battery/percentage').onValue,
-            builder: (context, batterySnapshot) {
-              int? batteryPercent;
-              if (batterySnapshot.hasData && batterySnapshot.data!.snapshot.value != null) {
-                final value = batterySnapshot.data!.snapshot.value;
-                if (value is num) {
-                  batteryPercent = value.toInt();
-                } else if (value is String) {
-                  batteryPercent = int.tryParse(value);
-                }
-              }
-              return _buildContentRow(context, batteryPercent);
-            },
+        if (pathSnapshot.connectionState == ConnectionState.waiting ||
+            pathSnapshot.hasError ||
+            dbPath == null ||
+            dbPath.isEmpty) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 24.0),
+              child: CircularProgressIndicator(
+                color: _kTeal,
+                strokeWidth: 2.5,
+              ),
+            ),
           );
-        },
-      ),
+        }
+
+        return StreamBuilder<DatabaseEvent>(
+          stream: FirebaseDatabase.instance.ref(dbPath).onValue,
+          builder: (context, eventSnapshot) {
+            Map<dynamic, dynamic>? val;
+            if (eventSnapshot.hasData && eventSnapshot.data!.snapshot.value != null) {
+              final value = eventSnapshot.data!.snapshot.value;
+              if (value is Map) {
+                val = value;
+              }
+            }
+
+            return _buildDashboardContent(context, val, isDark);
+          },
+        );
+      },
     );
   }
 
-  Widget _buildContentRow(BuildContext context, int? batteryPercent) {
+  Widget _buildDashboardContent(
+      BuildContext context, Map<dynamic, dynamic>? data, bool isDark) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Row(
+
+    final bool isOnline = data != null;
+    int batteryPercent = 100;
+    int heartRate = 0;
+    double temp = 0.0;
+    int steps = 0;
+    String actType = 'RESTING';
+    bool impact = false;
+    double? lat;
+    double? lng;
+
+    if (data != null) {
+      final batteryMap = data['battery'] as Map?;
+      batteryPercent = (batteryMap?['percentage'] ?? 100) as int;
+
+      final healthMap = data['health'] as Map?;
+      heartRate = (healthMap?['heart_rate'] ?? 0) as int;
+      temp = (healthMap?['temperature'] ?? 0.0) as double;
+
+      final activityMap = data['activity'] as Map?;
+      final currentActMap = activityMap?['current'] as Map?;
+      steps = (currentActMap?['step_count'] ?? 0) as int;
+      actType = (currentActMap?['activity_type'] ?? 'RESTING')
+          .toString()
+          .toUpperCase();
+      impact = (currentActMap?['impact_detected'] ?? false) as bool;
+
+      final locationMap = data['current_location'] as Map?;
+      if (locationMap != null) {
+        lat = (locationMap['latitude'] ?? 0.0) as double;
+        lng = (locationMap['longitude'] ?? 0.0) as double;
+      }
+    }
+
+    final double stepProgress = (steps / 5000.0).clamp(0.0, 1.0);
+
+    Color bannerBgColor;
+    Color borderClr;
+    Color iconBgColor;
+    Color iconColor;
+    IconData statusIcon;
+    String statusTitle;
+    String statusSubtitle;
+
+    if (!isOnline) {
+      bannerBgColor = Colors.grey.shade100.withValues(alpha: isDark ? 0.08 : 0.95);
+      borderClr = Colors.grey.withValues(alpha: 0.3);
+      iconBgColor = Colors.grey.withValues(alpha: 0.12);
+      iconColor = Colors.grey;
+      statusIcon = Icons.offline_bolt_rounded;
+      statusTitle = 'Collar Status: Offline';
+      statusSubtitle = 'Collar is currently disconnected or offline.';
+    } else if (impact) {
+      bannerBgColor = Colors.red.shade50.withValues(alpha: isDark ? 0.08 : 0.95);
+      borderClr = Colors.red.withValues(alpha: 0.3);
+      iconBgColor = Colors.red.withValues(alpha: 0.12);
+      iconColor = Colors.red;
+      statusIcon = Icons.warning_amber_rounded;
+      statusTitle = 'Collar Status: Online (Alert)';
+      statusSubtitle = 'Collar registered high acceleration collision.';
+    } else {
+      bannerBgColor = colorScheme.primaryContainer.withValues(alpha: isDark ? 0.08 : 0.7);
+      borderClr = colorScheme.primary.withValues(alpha: 0.3);
+      iconBgColor = _kTeal.withValues(alpha: 0.12);
+      iconColor = _kTeal;
+      statusIcon = Icons.check_circle_rounded;
+      statusTitle = 'Collar Status: Online';
+      statusSubtitle = 'Collar is online and transmitting telemetry data.';
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // 1. System Status Row / Alert Banner
         Container(
-          width: 42,
-          height: 42,
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: _kTeal.withOpacity(0.12),
-            shape: BoxShape.circle,
+            color: bannerBgColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: borderClr,
+            ),
           ),
-          child: const Icon(
-            Icons.check_circle_rounded,
-            color: _kTeal,
-            size: 22,
-          ),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             children: [
-              Text(
-                'All systems normal',
-                style: TextStyle(
-                  color: colorScheme.onSurface,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: iconBgColor,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  statusIcon,
+                  color: iconColor,
+                  size: 22,
                 ),
               ),
-              Text(
-                "Your pet's tracker is online and transmitting.",
-                style: TextStyle(
-                  color: colorScheme.onSurfaceVariant,
-                  fontSize: 12,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      statusTitle,
+                      style: TextStyle(
+                        color: impact ? Colors.red.shade800 : colorScheme.onSurface,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      statusSubtitle,
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
               ),
+              const SizedBox(width: 8),
+              if (isOnline) _buildBatteryIndicator(context, batteryPercent),
             ],
           ),
         ),
-        if (batteryPercent != null) ...[
-          const SizedBox(width: 12),
-          _buildBatteryIndicator(context, batteryPercent),
-        ],
+        
+        const SizedBox(height: 28),
+        
+        // Subtitle
+        Text(
+          'Live Telemetry Vitals',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: colorScheme.onSurface,
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // 2. Metrics Cards Grid (Row & Column adaptive layout)
+        Row(
+          children: [
+            Expanded(
+              child: _buildMetricCard(
+                context: context,
+                icon: const _PulsatingHeartIcon(),
+                title: 'Heart Rate',
+                value: heartRate > 0 ? '$heartRate BPM' : '-- BPM',
+                color: Colors.red,
+                subtitle: heartRate > 120 ? 'Elevated pulse' : 'Normal vital bounds',
+                isDark: isDark,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildMetricCard(
+                context: context,
+                icon: const Icon(Icons.thermostat_outlined, color: Colors.orange, size: 20),
+                title: 'Body Temp',
+                value: temp > 0.0 ? '${temp.toStringAsFixed(1)} °C' : '-- °C',
+                color: Colors.orange,
+                subtitle: temp > 39.2 ? 'Slight fever' : 'Normal range',
+                isDark: isDark,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildMetricCard(
+                context: context,
+                icon: const Icon(Icons.directions_run_outlined, color: Colors.blue, size: 20),
+                title: 'Steps Walked',
+                value: '$steps steps',
+                color: Colors.blue,
+                subtitle: '${(stepProgress * 100).toInt()}% of daily goal',
+                isDark: isDark,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildMetricCard(
+                context: context,
+                icon: const Icon(Icons.pets_outlined, color: Colors.teal, size: 20),
+                title: 'Active State',
+                value: actType,
+                color: Colors.teal,
+                subtitle: actType == 'RESTING' ? 'Sleeping / Inactive' : 'Active mobility',
+                isDark: isDark,
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 28),
+
+        // 3. Satellite Connection Link Card
+        Text(
+          'GPS Safe Zone Monitor',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: colorScheme.onSurface,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(
+              color: isDark ? Colors.white10 : Colors.blueGrey.shade50,
+            ),
+          ),
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.indigo.withOpacity(0.08),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.satellite_alt_rounded,
+                        color: Colors.indigo,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            lat != null && lng != null ? 'GPS Signal Connected' : 'GPS Signal Searching...',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            lat != null && lng != null
+                                ? 'Coordinates: ${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)}'
+                                : 'Collar is searching for satellites outdoor.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                if (lat != null && lng != null) ...[
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _kTeal,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const LocationDashboard(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.map_outlined, size: 18),
+                      label: const Text(
+                        'Track Live Location',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
       ],
+    );
+  }
+
+  Widget _buildMetricCard({
+    required BuildContext context,
+    required Widget icon,
+    required String title,
+    required String value,
+    required Color color,
+    String? subtitle,
+    bool isDark = false,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark ? Colors.white10 : Colors.blueGrey.shade50,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black12 : Colors.blueGrey.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: icon,
+          ),
+          const SizedBox(height: 14),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : const Color(0xFF1E293B),
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 11,
+              color: isDark ? Colors.blueGrey.shade300 : Colors.blueGrey.shade500,
+            ),
+          ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 9.5,
+                color: isDark ? Colors.blueGrey.shade400 : Colors.blueGrey.shade400,
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -496,15 +797,10 @@ class _StatusBannerState extends State<_StatusBanner> {
       batteryColor = const Color(0xFFEF4444); // Crimson Red
     }
 
-    // Border and padding details for calculation:
-    // Outer width: 24, height: 13
-    // Border width: 1.2 on each side
-    // Padding: 1.2 on each side
-    // Available width for inner fill = 24 - 2.4 - 2.4 = 19.2
     final double maxFillWidth = 24.0 - 4.8;
     double fillWidth = maxFillWidth * (clampedPercent / 100);
     if (clampedPercent > 0 && fillWidth < 2.0) {
-      fillWidth = 2.0; // Ensure at least a tiny sliver is visible if there is some charge
+      fillWidth = 2.0;
     }
 
     return Container(
@@ -575,6 +871,49 @@ class _StatusBannerState extends State<_StatusBanner> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PulsatingHeartIcon extends StatefulWidget {
+  const _PulsatingHeartIcon();
+
+  @override
+  State<_PulsatingHeartIcon> createState() => _PulsatingHeartIconState();
+}
+
+class _PulsatingHeartIconState extends State<_PulsatingHeartIcon>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _heartController;
+  late final Animation<double> _heartAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _heartController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..repeat(reverse: true);
+    _heartAnim = Tween<double>(begin: 1.0, end: 1.25).animate(
+      CurvedAnimation(parent: _heartController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _heartController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _heartAnim,
+      child: const Icon(
+        Icons.favorite_rounded,
+        color: Colors.red,
+        size: 20,
       ),
     );
   }
