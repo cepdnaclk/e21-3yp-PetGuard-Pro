@@ -132,10 +132,10 @@ class DashboardAppBar extends ConsumerWidget implements PreferredSizeWidget {
         Navigator.pushNamed(context, Routes.settings);
         break;
       case 'help':
-        _showInfoDialog(context, 'Help & Support', 'Help content goes here.');
+        Navigator.pushNamed(context, Routes.helpSupport);
         break;
       case 'about':
-        _showInfoDialog(context, 'About', 'App information goes here.');
+        Navigator.pushNamed(context, Routes.about);
         break;
       case 'logout':
         _confirmLogout(context, ref);

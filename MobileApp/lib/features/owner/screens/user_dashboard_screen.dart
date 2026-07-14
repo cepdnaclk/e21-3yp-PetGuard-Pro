@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'home_tab.dart';
+import 'analytics_tab.dart';
 import 'features_tab.dart';
 
 // ── Monitor providers — must be watched here so they are always active ────────
@@ -26,6 +27,7 @@ class _UserDashboardScreenState extends ConsumerState<UserDashboardScreen> {
 
   static const List<Widget> _screens = [
     HomeTab(),
+    AnalyticsTab(),
     FeaturesTab(),
   ];
 
@@ -74,6 +76,10 @@ class _UserDashboardScreenState extends ConsumerState<UserDashboardScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.analytics),
+            label: 'Analytics',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.dashboard),

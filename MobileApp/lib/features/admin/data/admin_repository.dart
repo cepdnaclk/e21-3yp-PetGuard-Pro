@@ -9,7 +9,6 @@ class AdminRepository {
 
   Future<Map<String, String>> fetchStats() async {
     final usersSnap = await _firestore.collection('users').get();
-    final devicesSnap = await _firestore.collection('devices').get();
     final alertsSnap = await _firestore
         .collection('alerts')
         .where('status', isEqualTo: 'Pending')
@@ -20,6 +19,20 @@ class AdminRepository {
       return status != 'not_varified';
     }).length;
 
+    // Fetch device count dynamically from Firebase Realtime Database 'pets' reference
+    int rtdbDevicesCount = 0;
+    try {
+      final rtdb = FirebaseDatabase.instance;
+      final snapshot = await rtdb.ref('pets').get();
+      if (snapshot.exists) {
+        final data = snapshot.value as Map<dynamic, dynamic>? ?? {};
+        rtdbDevicesCount = data.keys.length;
+      }
+    } catch (e) {
+      debugPrint('Error fetching pet IDs from RTDB: $e');
+    }
+
+    final devicesSnap = await _firestore.collection('devices').get();
     final devices = devicesSnap.docs;
     double totalConnectivity = 0;
     for (var d in devices) {
@@ -27,11 +40,11 @@ class AdminRepository {
     }
 
     final connectivity =
-        devices.isNotEmpty ? "${(totalConnectivity / devices.length).round()}%" : "0%";
+        devices.isNotEmpty ? "${(totalConnectivity / devices.length).round()}%" : "100%";
 
     return {
       'users': verifiedUsersCount.toString(),
-      'devices': devicesSnap.size.toString(),
+      'devices': rtdbDevicesCount.toString(),
       'alerts': alertsSnap.size.toString(),
       'connectivity': connectivity,
     };

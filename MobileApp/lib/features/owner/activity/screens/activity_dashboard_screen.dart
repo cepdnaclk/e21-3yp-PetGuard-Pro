@@ -670,12 +670,8 @@ class _HistoryTabState extends ConsumerState<_HistoryTab> {
                         'No activity recorded for ${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}.',
                   )
                 else ...[
-                  // ── Line chart ─────────────────────────────────────────
-                  _ActivityLineChart(entries: dayEntries),
-                  const SizedBox(height: 14),
-
-                  // ── Gantt band ─────────────────────────────────────────
-                  _GanttBand(entries: dayEntries),
+                  // ── Activity step-area chart ───────────────────────────
+                  _ActivityStepAreaChart(entries: dayEntries),
                   const SizedBox(height: 14),
 
                   // ── Summary stats ──────────────────────────────────────
@@ -768,27 +764,32 @@ class _DatePickerRow extends StatelessWidget {
   }
 }
 
-// ── Activity line chart ───────────────────────────────────────────────────────
+// ── Activity step-area chart ─────────────────────────────────────────────────
 
-class _ActivityLineChart extends StatelessWidget {
+class _ActivityStepAreaChart extends StatelessWidget {
   final List<ActivityData> entries;
-  const _ActivityLineChart({required this.entries});
+  const _ActivityStepAreaChart({required this.entries});
 
-  static const _sevHigh   = Color(0xFFD32F2F);
-  static const _sevMed    = Color(0xFFF57C00);
-  static const _sevLow    = Color(0xFF2E7D32);
+  static const _sevHigh = Color(0xFFD32F2F);
+  static const _sevMed = Color(0xFFF57C00);
+  static const _sevLow = Color(0xFF2E7D32);
+  static const _zoneColors = [
+    Color(0xFFB3D9F5), // resting
+    Color(0xFFB9F0D7), // light
+    Color(0xFFFFE0B2), // moderate
+    Color(0xFFFFCDD2), // active
+  ];
 
   @override
   Widget build(BuildContext context) {
-    // Build spots from entries
     final spots = entries.map((e) {
       final x = e.timestamp.hour + e.timestamp.minute / 60.0;
       final y = e.activityLevel.toDouble();
       return FlSpot(x, y);
     }).toList();
 
-    // Impact entries for overlay dots
     final impacts = entries.where((e) => e.impactDetected).toList();
+    final primary = _PgColors.primary(context);
 
     return Container(
       decoration: _PgDecor.card(context),
@@ -796,11 +797,10 @@ class _ActivityLineChart extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Row(
             children: [
               Text(
-                'Activity level',
+                'Activity history',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -808,22 +808,22 @@ class _ActivityLineChart extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              // Legend
               _dot(_sevHigh, 'High impact'),
               const SizedBox(width: 8),
-              _dot(_sevMed, 'Med'),
+              _dot(_sevMed, 'Med impact'),
               const SizedBox(width: 8),
-              _dot(_sevLow, 'Low'),
+              _dot(_sevLow, 'Low impact'),
             ],
           ),
           const SizedBox(height: 12),
-
           SizedBox(
-            height: 160,
+            height: 180,
             child: LineChart(
               LineChartData(
-                minX: 0, maxX: 24,
-                minY: -0.3, maxY: 3.5,
+                minX: 0,
+                maxX: 24,
+                minY: -0.3,
+                maxY: 3.5,
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
@@ -834,6 +834,30 @@ class _ActivityLineChart extends StatelessWidget {
                   ),
                 ),
                 borderData: FlBorderData(show: false),
+                rangeAnnotations: RangeAnnotations(
+                  horizontalRangeAnnotations: [
+                    HorizontalRangeAnnotation(
+                      y1: -0.3,
+                      y2: 1,
+                      color: _zoneColors[0].withOpacity(0.35),
+                    ),
+                    HorizontalRangeAnnotation(
+                      y1: 1,
+                      y2: 2,
+                      color: _zoneColors[1].withOpacity(0.35),
+                    ),
+                    HorizontalRangeAnnotation(
+                      y1: 2,
+                      y2: 3,
+                      color: _zoneColors[2].withOpacity(0.35),
+                    ),
+                    HorizontalRangeAnnotation(
+                      y1: 3,
+                      y2: 3.5,
+                      color: _zoneColors[3].withOpacity(0.35),
+                    ),
+                  ],
+                ),
                 titlesData: FlTitlesData(
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(
@@ -844,7 +868,7 @@ class _ActivityLineChart extends StatelessWidget {
                         const labels = ['Rest', 'Light', 'Mod', 'Active'];
                         final i = v.toInt();
                         if (i < 0 || i >= labels.length) return const SizedBox();
-                          return Text(
+                        return Text(
                           labels[i],
                           style: TextStyle(
                             fontSize: 9,
@@ -860,12 +884,8 @@ class _ActivityLineChart extends StatelessWidget {
                       reservedSize: 20,
                       interval: 4,
                       getTitlesWidget: (v, _) {
-                        final h = v.toInt();
-                        String label;
-                        if (h == 0) label = '12a';
-                        else if (h == 12) label = '12p';
-                        else if (h < 12) label = '${h}a';
-                        else label = '${h - 12}p';
+                        final h = v.toInt().clamp(0, 24);
+                        final label = '${h.toString().padLeft(2, '0')}:00';
                         return Text(
                           label,
                           style: TextStyle(
@@ -876,28 +896,26 @@ class _ActivityLineChart extends StatelessWidget {
                       },
                     ),
                   ),
-                  rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  topTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                 ),
-                
                 lineBarsData: [
                   LineChartBarData(
                     spots: spots,
                     isCurved: false,
-                        isStepLineChart: true,
-                        color: _PgColors.primary(context),
-                    barWidth: 2.5,
+                    isStepLineChart: true,
+                    color: primary,
+                    barWidth: 3,
                     dotData: const FlDotData(show: false),
                     belowBarData: BarAreaData(
                       show: true,
-                          color: _PgColors.primary(context).withAlpha(20),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [primary.withOpacity(0.22), primary.withOpacity(0.04)],
+                      ),
                     ),
                   ),
-                  // Impact dots — transparent line, visible dots only
                   LineChartBarData(
                     spots: impacts.map((e) {
                       final x = e.timestamp.hour + e.timestamp.minute / 60.0;
@@ -929,22 +947,48 @@ class _ActivityLineChart extends StatelessWidget {
               ),
             ),
           ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _levelIndicator(context, _zoneColors[0], 'Rest'),
+              const SizedBox(width: 10),
+              _levelIndicator(context, _zoneColors[1], 'Light'),
+              const SizedBox(width: 10),
+              _levelIndicator(context, _zoneColors[2], 'Mod'),
+              const SizedBox(width: 10),
+              _levelIndicator(context, _zoneColors[3], 'Active'),
+            ],
+          ),
         ],
       ),
     );
   }
 
   Widget _dot(Color c, String label) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Container(
-        width: 7, height: 7,
-        decoration: BoxDecoration(color: c, shape: BoxShape.circle),
-      ),
-      const SizedBox(width: 3),
-      Builder(builder: (ctx) => Text(label, style: TextStyle(fontSize: 9, color: _PgColors.subtext(ctx)))),
-    ],
-  );
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 7,
+            height: 7,
+            decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 3),
+          Builder(builder: (ctx) => Text(label, style: TextStyle(fontSize: 9, color: _PgColors.subtext(ctx)))),
+        ],
+      );
+
+  Widget _levelIndicator(BuildContext context, Color color, String label) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2)),
+          ),
+          const SizedBox(width: 4),
+          Text(label, style: TextStyle(fontSize: 9, color: _PgColors.subtext(context))),
+        ],
+      );
 }
 
 // ── Gantt status band ─────────────────────────────────────────────────────────

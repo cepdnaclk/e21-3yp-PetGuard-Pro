@@ -25,33 +25,37 @@ class OwnerRepository {
   // Update user profile
   Future<void> updateProfile({
     required String name,
-    required String email,
     required String phone,
   }) async {
     final user = _auth.currentUser;
     if (user == null) return;
     await _firestore.collection('users').doc(user.uid).update({
       'name': name,
-      'email': email,
       'phone': phone,
     });
-    if (email != user.email) {
-      await user.verifyBeforeUpdateEmail(email);
-    }
+  }
+
+  // Change user email address via Firebase Auth verifyBeforeUpdateEmail
+  Future<void> changeEmailAddress(String newEmail) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('No logged-in user found.');
+    final email = newEmail.trim();
+    if (email.isEmpty) throw Exception('Email cannot be empty.');
+
+    await user.verifyBeforeUpdateEmail(email);
+
+    await _firestore.collection('users').doc(user.uid).update({
+      'email': email,
+    });
   }
 
   // Change password
-  Future<void> changePassword({
-    required String oldPassword,
-    required String newPassword,
-  }) async {
+  // Send password reset email
+  Future<void> sendPasswordResetEmail() async {
     final user = _auth.currentUser;
     final email = user?.email;
-    if (user == null || email == null) return;
-    final cred = EmailAuthProvider.credential(
-        email: email, password: oldPassword);
-    await user.reauthenticateWithCredential(cred);
-    await user.updatePassword(newPassword);
+    if (email == null) throw Exception('No logged-in user email found.');
+    await _auth.sendPasswordResetEmail(email: email);
   }
 
   // Fetch all user pets
