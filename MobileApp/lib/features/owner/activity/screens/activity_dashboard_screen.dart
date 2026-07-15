@@ -158,38 +158,52 @@ class _LiveLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // ── 1. Activity hero ─────────────────────────────────────────
-          _ActivityHeroCard(activity: activity),
-          const SizedBox(height: 14),
-
-          // ── 2. Active Minutes (centered, compact) ────────────────────
-          _LiveStatCard(
-            icon: Icons.timer_outlined,
-            label: 'Active Minutes',
-            value: '${activity.activeMinutes.toStringAsFixed(0)} min',
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compactHeight = constraints.maxHeight < 720;
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                flex: compactHeight ? 3 : 4,
+                child: _ActivityHeroCard(activity: activity),
+              ),
+              SizedBox(height: compactHeight ? 10 : 12),
+              Expanded(
+                flex: compactHeight ? 2 : 2,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _LiveStatCard(
+                        icon: Icons.timer_outlined,
+                        label: 'Active Minutes',
+                        value: '${activity.activeMinutes.toStringAsFixed(0)} min',
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _ImpactAlertCard(
+                        detected: activity.impactDetected,
+                        severity: activity.impactSeverity,
+                        compact: true,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: compactHeight ? 10 : 12),
+              Expanded(
+                flex: compactHeight ? 2 : 2,
+                child: _ActivityTipCard(activityType: activity.activityType),
+              ),
+              SizedBox(height: compactHeight ? 8 : 10),
+              const _DisclaimerBanner(),
+            ],
           ),
-          const SizedBox(height: 14),
-
-          // ── 3. Impact alert ──────────────────────────────────────────
-          _ImpactAlertCard(
-            detected: activity.impactDetected,
-            severity: activity.impactSeverity,
-          ),
-          const SizedBox(height: 14),
-
-          // ── 4. Context-aware tip ─────────────────────────────────────
-          _ActivityTipCard(activityType: activity.activityType),
-          const SizedBox(height: 10),
-
-          // ── 5. Disclaimer ────────────────────────────────────────────
-          const _DisclaimerBanner(),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -201,11 +215,11 @@ class _ActivityHeroCard extends StatelessWidget {
   const _ActivityHeroCard({required this.activity});
 
   static const Map<String, List<Color>> _gradients = {
-    'resting': [Color(0xFFA8D5B5), Color(0xFF6BAF82)],
-    'walking': [Color(0xFF4CAF7D), Color(0xFF2E7D52)],
-    'playing': [Color(0xFF00C853), Color(0xFF00953E)],
-    'running': [Color(0xFF2E7D32), Color(0xFF1B5E20)],
-    'impact':  [Color(0xFFEF5350), Color(0xFFC62828)],
+    'resting': [Color(0xFF26A69A), Color(0xFF4DD0E1)],
+    'walking': [Color(0xFF00897B), Color(0xFF26C6DA)],
+    'playing': [Color(0xFF00796B), Color(0xFF4FC3F7)],
+    'running': [Color(0xFF00695C), Color(0xFF00ACC1)],
+    'impact':  [Color(0xFFB04A3A), Color(0xFFE07A5F)],
   };
 
 static List<Color> _gradientFor(String type) =>
@@ -225,12 +239,13 @@ static List<Color> _gradientFor(String type) =>
         '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
 
     return Container(
+      height: double.infinity,
       decoration: BoxDecoration(
         gradient: LinearGradient(
-        colors: _gradientFor(activity.activityType),
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
+          colors: _gradientFor(activity.activityType),
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: _PgDecor.xl,
         boxShadow: [
           BoxShadow(
@@ -348,6 +363,7 @@ class _LiveStatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      height: double.infinity,
       decoration: _PgDecor.card(context),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
@@ -395,10 +411,12 @@ class _LiveStatCard extends StatelessWidget {
 class _ImpactAlertCard extends StatelessWidget {
   final bool detected;
   final double severity;
+  final bool compact;
 
   const _ImpactAlertCard({
     required this.detected,
     required this.severity,
+    this.compact = false,
   });
 
   @override
@@ -410,13 +428,12 @@ class _ImpactAlertCard extends StatelessWidget {
         ? _PgColors.danger(context)
         : _PgColors.warning(context);
 
-
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     final bg = isDark
         ? (!detected
-            ? const Color(0xFF162522) // Dark muted teal
-            : high ? const Color(0xFF331C1C) : const Color(0xFF33241B)) // Dark red / Dark orange
+            ? const Color(0xFF162522)
+            : high ? const Color(0xFF331C1C) : const Color(0xFF33241B))
         : (!detected
             ? const Color(0xFFEFF8F4)
             : high ? const Color(0xFFFFEFEE) : const Color(0xFFFFF5EA));
@@ -429,7 +446,15 @@ class _ImpactAlertCard extends StatelessWidget {
             ? const Color(0xFFBBDDD5)
             : high ? const Color(0xFFF4C7C1) : const Color(0xFFF6D9B8));
 
+    final title = !detected
+        ? 'All Clear'
+        : high ? 'High Impact' : 'Impact Detected';
+    final subtitle = !detected
+        ? 'No abnormal impact'
+        : 'Severity ${severity.toStringAsFixed(1)}/10';
+
     return Container(
+      height: double.infinity,
       decoration: BoxDecoration(
         color: bg,
         borderRadius: _PgDecor.lg,
@@ -442,69 +467,127 @@ class _ImpactAlertCard extends StatelessWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: accent.withAlpha(31),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(
-              !detected ? Icons.shield_outlined : Icons.warning_amber_rounded,
-              color: accent,
-              size: 26,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 14 : 18,
+        vertical: compact ? 12 : 14,
+      ),
+      child: compact
+          ? Row(
               children: [
-                Text(
-                  !detected
-                      ? 'All Clear'
-                      : high ? 'High Impact Detected!' : 'Impact Detected',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 15,
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: accent.withAlpha(31),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    !detected ? Icons.shield_outlined : Icons.warning_amber_rounded,
                     color: accent,
+                    size: 18,
                   ),
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  !detected
-                      ? 'No abnormal impact detected'
-                      : 'Severity: ${severity.toStringAsFixed(1)} / 10',
-                  style: TextStyle(
-                    color: _PgColors.subtext(context),
-                    fontSize: 12,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                          color: accent,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: _PgColors.subtext(context),
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+                if (detected)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: accent,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      high ? 'HIGH' : 'MED',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+              ],
+            )
+          : Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: accent.withAlpha(31),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(
+                    !detected ? Icons.shield_outlined : Icons.warning_amber_rounded,
+                    color: accent,
+                    size: 26,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                          color: accent,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: _PgColors.subtext(context),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (detected)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: accent,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      high ? 'HIGH' : 'MED',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
               ],
             ),
-          ),
-          if (detected)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: accent,
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                high ? 'HIGH' : 'MED',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-        ],
-      ),
     );
   }
 }
@@ -514,11 +597,11 @@ class _ActivityTipCard extends StatelessWidget {
   const _ActivityTipCard({required this.activityType});
 
   static const Map<String, String> _tips = {
-    'resting': 'Rest is essential for muscle recovery and healthy sleep cycles in pets.',
-    'walking': 'Regular walks improve cardiovascular health and help maintain a healthy weight.',
-    'playing': 'Play strengthens the bond between you and your pet and supports mental wellbeing.',
-    'running': 'Ensure fresh water is available after intense exercise to keep your pet hydrated.',
-    'impact':  'Check your pet for signs of discomfort or limping after a detected impact.',
+    'resting': 'A calm recovery period helps your pet restore energy and supports healthy sleep after a busy day.',
+    'walking': 'Regular walks support heart health, joint comfort, and steady daily energy for your pet.',
+    'playing': 'Playtime strengthens your bond and encourages both physical activity and mental wellbeing.',
+    'running': 'After a burst of activity, fresh water and a short cool-down help keep your pet comfortable.',
+    'impact': 'After a hard impact, watch for limping, stiffness, or unusual behavior and rest your pet if needed.',
   };
 
   @override
@@ -526,27 +609,24 @@ class _ActivityTipCard extends StatelessWidget {
     final tip = _tips[activityType.toLowerCase()] ??
         'Monitor your pet\'s activity regularly for early signs of health changes.';
 
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFE8F5E9),
+        color: colorScheme.primaryContainer.withAlpha(70),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFA5D6A7)),
+        border: Border.all(color: colorScheme.primary.withAlpha(80)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 30,
-            height: 30,
+            width: 4,
+            height: 56,
             decoration: BoxDecoration(
-              color: const Color(0xFFC8E6C9),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Icons.info_outline_rounded,
-              size: 16,
-              color: Color(0xFF2E7D32),
+              color: colorScheme.primary,
+              borderRadius: BorderRadius.circular(999),
             ),
           ),
           const SizedBox(width: 10),
@@ -554,22 +634,29 @@ class _ActivityTipCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'DID YOU KNOW?',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF388E3C),
-                    letterSpacing: 0.5,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withAlpha(28),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    'INSIGHT',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: colorScheme.primary,
+                      letterSpacing: 0.6,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
                   tip,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xFF33691E),
-                    height: 1.5,
+                    color: colorScheme.onSurfaceVariant,
+                    height: 1.45,
                   ),
                 ),
               ],
@@ -586,29 +673,30 @@ class _DisclaimerBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFDE7),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFFFE082)),
+        color: colorScheme.surfaceContainerHighest.withAlpha(90),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colorScheme.outlineVariant.withAlpha(120)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
+        children: [
           Icon(
             Icons.info_outline_rounded,
             size: 15,
-            color: Color(0xFFF9A825),
+            color: colorScheme.primary,
           ),
-          SizedBox(width: 8),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Activity data is for general awareness only and does not replace professional veterinary assessment. Consult a vet if you have concerns about your pet\'s health.',
+              'Activity data is for general awareness only and does not replace professional veterinary assessment.',
               style: TextStyle(
                 fontSize: 11,
-                color: Color(0xFFF57F17),
-                height: 1.5,
+                color: colorScheme.onSurfaceVariant,
+                height: 1.4,
               ),
             ),
           ),
