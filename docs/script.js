@@ -290,3 +290,40 @@ document.addEventListener('DOMContentLoaded', () => {
     // Default selection on page start
     updatePhoneDashboard('feat-connection');
 })();
+
+// Image Lightbox Interactivity
+(function() {
+    const probeImg = document.querySelector('.probe-img');
+    const lightbox = document.createElement('div');
+    lightbox.id = 'image-lightbox';
+    lightbox.className = 'lightbox';
+    lightbox.innerHTML = `
+        <span class="lightbox-close">&times;</span>
+        <img class="lightbox-content" id="lightbox-img" alt="Enlarged View">
+    `;
+    document.body.appendChild(lightbox);
+
+    const lightboxImg = lightbox.querySelector('#lightbox-img');
+    const closeBtn = lightbox.querySelector('.lightbox-close');
+
+    if (probeImg) {
+        probeImg.style.cursor = 'zoom-in';
+        probeImg.addEventListener('click', () => {
+            lightboxImg.src = probeImg.src;
+            lightbox.classList.add('active');
+            document.body.style.overflow = 'hidden'; // Disable page scrolling
+        });
+    }
+
+    const closeLightbox = () => {
+        lightbox.classList.remove('active');
+        document.body.style.overflow = 'auto'; // Re-enable page scrolling
+    };
+
+    closeBtn.addEventListener('click', closeLightbox);
+    lightbox.addEventListener('click', (e) => {
+        if (e.target === lightbox) {
+            closeLightbox();
+        }
+    });
+})();
