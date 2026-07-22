@@ -180,8 +180,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         statusBanner.className = 'phone-status-banner';
         statusIcon.textContent = '✓';
-        statusTitle.textContent = 'Collar Status: Online';
-        statusSub.textContent = 'Collar is online and transmitting data.';
+        statusTitle.textContent = 'Harness Status: Online';
+        statusSub.textContent = 'Harness is online and transmitting data.';
 
         // Map widgets
         const mapMarker = document.getElementById('sim-map-marker');
@@ -292,8 +292,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 switchSimTab('support');
                 statusBanner.classList.add('offline');
                 statusIcon.textContent = '⚠️';
-                statusTitle.textContent = 'Collar Status: Offline';
-                statusSub.textContent = 'Collar is currently disconnected or offline.';
+                statusTitle.textContent = 'Harness Status: Offline';
+                statusSub.textContent = 'Harness is currently disconnected or offline.';
 
                 document.querySelectorAll('.phone-metric-card').forEach(card => card.style.opacity = '0.35');
 
@@ -304,7 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 stepsVal.textContent = 'Offline';
                 stepsSub.textContent = 'Last synced: 1m ago';
                 actVal.textContent = 'OFFLINE';
-                actSub.textContent = 'Collar turned off';
+                actSub.textContent = 'Harness turned off';
                 break;
         }
     }

@@ -66,7 +66,7 @@ layout: null
                 <div class="ht">IoT · Real-Time Vitals · Firebase Cloud · Flutter</div>
                 <h1><span class="g">Pet</span><span class="s">Guard</span> Pro<span class="sub typewriter-text"></span>
                 </h1>
-                <p class="hd">An intelligent, low-cost pet safety system combining an onboard telemetry collar, Firebase
+                <p class="hd">An intelligent, low-cost pet safety system combining an onboard telemetry harness, Firebase
                     cloud syncing, and a feature-rich Flutter app with safe-zone trackers, vitals streams, and PDF
                     behavior reports.</p>
                 <div class="hb">
@@ -86,15 +86,15 @@ layout: null
                 <div class="stg">01 · Problem Statement</div>
                 <h2>The Gap in Pet Monitoring</h2>
                 <p class="sd">Conventional pet trackers report location on a delay and say nothing about how the pet
-                    is actually doing. PetGuard Pro closes both gaps with a connected collar and a live dashboard.</p>
+                    is actually doing. PetGuard Pro closes both gaps with a connected harness and a live dashboard.</p>
             </div>
 
             <div class="pg rev">
                 <div class="pc">
                     <div class="pn">Latency gaps</div>
                     <h3 class="pt">Slow, Infrequent updates</h3>
-                    <p class="px">Many consumer collars refresh location every few minutes, leaving owners blind during
-                        the moments that matter most. PetGuard Pro's ESP32 collar pushes sensor readings to Firebase
+                    <p class="px">Many consumer harnesses refresh location every few minutes, leaving owners blind during
+                        the moments that matter most. PetGuard Pro's ESP32 harness pushes sensor readings to Firebase
                         Realtime Database on a short, fixed interval, so the app reflects the pet's current state
                         within seconds, not minutes.</p>
                 </div>
@@ -103,14 +103,14 @@ layout: null
                     <div class="pn">Delayed response</div>
                     <h3 class="pt">No Way to Intervene Remotely</h3>
                     <p class="px">Most trackers only notify after a pet is already gone. When a geofence boundary is
-                        crossed, PetGuard Pro triggers an onboard piezo buzzer on the collar itself, giving the owner
+                        crossed, PetGuard Pro triggers an onboard piezo buzzer on the harness itself, giving the owner
                         an immediate, local deterrent rather than just a phone alert after the fact.</p>
                 </div>
 
                 <div class="pc">
                     <div class="pn">Inadequate context</div>
                     <h3 class="pt">No Health Insights</h3>
-                    <p class="px">Location-only devices say nothing about how a pet is actually doing. Our collar
+                    <p class="px">Location-only devices say nothing about how a pet is actually doing. Our harness
                         pairs an MLX90614 infrared sensor for surface temperature with motion data for real-time
                         activity level — giving owners health context, not just a dot on a map.
                     </p>
@@ -119,7 +119,7 @@ layout: null
                 <div class="pc">
                     <div class="pn">Stale dashboards</div>
                     <h3 class="pt">Silent Disconnects</h3>
-                    <p class="px">If a collar loses power or signal, most apps keep showing the last value with no
+                    <p class="px">If a harness loses power or signal, most apps keep showing the last value with no
                         warning that it's outdated. PetGuard Pro's app checks the timestamp on each incoming Firebase
                         record and flags the pet's status as offline the moment updates stop arriving.
                     </p>
@@ -143,7 +143,7 @@ layout: null
                 <div class="arc-tab active" onclick="arcSwitchTab(0)">
                     <div class="arc-tab-num">01</div>
                     <div class="arc-tab-name">Hardware</div>
-                    <div class="arc-tab-sub">Embedded Collar</div>
+                    <div class="arc-tab-sub">Embedded Harness</div>
                 </div>
                 <div class="arc-tab" onclick="arcSwitchTab(1)">
                     <div class="arc-tab-num">02</div>
@@ -169,7 +169,7 @@ layout: null
                 <div class="arc-panel active">
                     <div class="arc-panel-hero" data-num="01">
                         <div>
-                            <div class="arc-hero-tag">Layer 01 · Collar</div>
+                            <div class="arc-hero-tag">Layer 01 · Harness</div>
                             <div class="arc-hero-title">Onboard Embedded<br>Hardware</div>
                         </div>
                         <div class="arc-hero-badge">ESP32 Core</div>
@@ -211,7 +211,7 @@ layout: null
                         <div class="arc-pitem"><span class="arc-pitem-icon">🔥</span>
                             <div class="arc-pitem-title">Firebase RTDB</div>
                             <div class="arc-pitem-desc">Streams live GPS coordinate paths and health vitals instantly
-                                from collar telemetry.</div><span class="arc-pitem-tag">Realtime DB</span>
+                                from harness telemetry.</div><span class="arc-pitem-tag">Realtime DB</span>
                         </div>
                         <div class="arc-pitem"><span class="arc-pitem-icon">⚡</span>
                             <div class="arc-pitem-title">Cloud Functions</div>
@@ -280,7 +280,7 @@ layout: null
                                 authentication.</div><span class="arc-pitem-tag">Firebase Auth</span>
                         </div>
                         <div class="arc-pitem"><span class="arc-pitem-icon">🚧</span>
-                            <div class="arc-pitem-title">Collar Isolation</div>
+                            <div class="arc-pitem-title">Harness Isolation</div>
                             <div class="arc-pitem-desc">Hardware logs write only to designated paths based on
                                 authenticated pet ownership.</div><span class="arc-pitem-tag">Database Rules</span>
                         </div>
@@ -307,7 +307,7 @@ layout: null
             <div class="shd rev">
                 <div class="stg">03 · Tech Stack</div>
                 <h2>Project Data Flow</h2>
-                <p class="sd">How the smart collar coordinates telemetry streams directly with Firebase Realtime
+                <p class="sd">How the smart harness coordinates telemetry streams directly with Firebase Realtime
                     Database to feed the owner app.</p>
             </div>
 
@@ -354,15 +354,15 @@ layout: null
 
                                 <!-- Tab 1: Home Dashboard Screen -->
                                 <div class="phone-tab-content active" id="phone-tab-home">
-                                    <!-- Collar Status Banner -->
+                                    <!-- Harness Status Banner -->
                                     <div class="phone-status-banner" id="sim-status-banner">
                                         <div class="phone-banner-icon-wrap" id="sim-status-icon-wrap">
                                             <span class="phone-banner-icon" id="sim-status-icon">✓</span>
                                         </div>
                                         <div class="phone-banner-details">
-                                            <div class="phone-banner-title" id="sim-status-title">Collar Status: Online
+                                            <div class="phone-banner-title" id="sim-status-title">Harness Status: Online
                                             </div>
-                                            <div class="phone-banner-sub" id="sim-status-sub">Collar is online and
+                                            <div class="phone-banner-sub" id="sim-status-sub">Harness is online and
                                                 transmitting data.</div>
                                         </div>
                                         <div class="phone-battery-pct">85%</div>
@@ -458,7 +458,7 @@ layout: null
 
                                     <div class="phone-ticket-box">
                                         <div class="ticket-box-title">Create Ticket</div>
-                                        <p>Collar offline / Connection dropped issues</p>
+                                        <p>Harness offline / Connection dropped issues</p>
                                         <button class="phone-ticket-btn" id="sim-ticket-btn">Submit Firestore
                                             Ticket</button>
                                         <div class="phone-ticket-status" id="sim-ticket-status">No active tickets</div>
@@ -489,7 +489,7 @@ layout: null
                 <div class="flist">
                     <div class="fi act" id="feat-connection">
                         <h3 class="fit">⚡ Onboard Dual Connection</h3>
-                        <p class="fd">Collar automatically synchronizes local telemetry data packet frames using home
+                        <p class="fd">Harness automatically synchronizes local telemetry data packet frames using home
                             Wi-Fi or fallbacks onto SIM800L cellular lines when walking outside.</p>
                     </div>
 
@@ -519,7 +519,7 @@ layout: null
 
                     <div class="fi" id="feat-tickets">
                         <h3 class="fit">🎫 Support Tickets Desk</h3>
-                        <p class="fd">If collar connections drop, status updates to offline. The built-in desk logs
+                        <p class="fd">If harness connections drop, status updates to offline. The built-in desk logs
                             tickets in Firestore to handle issues directly.</p>
                     </div>
                 </div>
@@ -629,7 +629,7 @@ layout: null
                     <div class="gantt-msrow ms3">Milestone 03 — Working Prototype Development</div>
                 </div>
                 <div class="g-row g-task-row">
-                    <div class="gantt-lbl"><span class="gtick">✓</span> 1. PCB Design &amp; Collar Fabrication</div>
+                    <div class="gantt-lbl"><span class="gtick">✓</span> 1. PCB Design &amp; Harness Fabrication</div>
                     <div class="gantt-col"></div>
                     <div class="gantt-col"></div>
                     <div class="gantt-col"></div>
@@ -721,7 +721,7 @@ layout: null
             <div class="shd rev">
                 <div class="stg">06 · Budget</div>
                 <h2>Project Budget</h2>
-                <p class="sd">Estimated components cost breakdown for a single PetGuard Pro collar prototype in Sri
+                <p class="sd">Estimated components cost breakdown for a single PetGuard Pro harness prototype in Sri
                     Lankan Rupees (LKR).</p>
             </div>
 
@@ -779,7 +779,7 @@ layout: null
                             <td>150.00</td>
                         </tr>
                         <tr>
-                            <td class="bgt-item">Collar Enclosure shell packaging</td>
+                            <td class="bgt-item">Harness Enclosure shell packaging</td>
                             <td>1</td>
                             <td>800.00</td>
                             <td>800.00</td>

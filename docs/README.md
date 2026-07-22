@@ -7,7 +7,7 @@ title: PetGuard Pro
 ---
 
 # PetGuard Pro  
-**Smart Pet Collar for Real-Time Tracking, Geo-fencing & Health Monitoring**
+**Smart Pet Harness for Real-Time Tracking, Geo-fencing & Health Monitoring**
 
 ---
 
@@ -37,7 +37,7 @@ title: PetGuard Pro
 
 Pet owners face major challenges in ensuring the safety and health of their pets due to the lack of real-time visibility and delayed response to emergencies. Pets cannot communicate health issues or dangerous situations, making timely intervention difficult.
 
-**PetGuard Pro** addresses this problem by providing an IoT-based smart pet collar combined with a mobile application and a cloud backend. The system enables real-time location tracking, geo-fencing alerts, health monitoring, and instant notifications to ensure proactive and reliable pet care.
+**PetGuard Pro** addresses this problem by providing an IoT-based smart pet harness combined with a mobile application and a cloud backend. The system enables real-time location tracking, geo-fencing alerts, health monitoring, and instant notifications to ensure proactive and reliable pet care.
 
 ---
 
@@ -45,17 +45,17 @@ Pet owners face major challenges in ensuring the safety and health of their pets
 
 PetGuard Pro follows a **device–cloud–mobile architecture**:
 
-- **Smart Pet Collar** collects location, activity, and health data using onboard sensors.
+- **Smart Pet Harness** collects location, activity, and health data using onboard sensors.
 - **Cloud Backend (Firebase)** securely receives, processes, and stores data while handling alerts and scalability.
 - **Mobile Application (Flutter)** allows pet owners to monitor their pets in real time and receive notifications.
 
-Communication between the collar and cloud is handled using HTTPS/WebSockets, while secure REST APIs serve the mobile application.
+Communication between the harness and cloud is handled using HTTPS/WebSockets, while secure REST APIs serve the mobile application.
 
 ---
 
 ## Hardware & Software Designs
 
-### Hardware Design (Pet Collar Unit)
+### Hardware Design (Pet Harness Unit)
 - **Microcontroller:** ESP32-WROOM-32  
 - **Positioning:** NEO-8M GPS  
 - **Connectivity:** SIM800L GSM/GPRS (2G)  
