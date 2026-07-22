@@ -5,7 +5,7 @@ import { auth, firestore } from './firebase';
 import DashboardTab from './components/DashboardTab';
 import UsersTab from './components/UsersTab';
 import SupportTab from './components/SupportTab';
-import { LayoutDashboard, Users, MessageSquare, LogOut, Sun, Moon, Lock, Mail, Key, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, Users, MessageSquare, LogOut, Sun, Moon, Lock, Mail, Key, ShieldAlert, Menu, X } from 'lucide-react';
 
 export default function App() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -20,6 +20,7 @@ export default function App() {
 
   // Navigation & Theme
   const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'support'>('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem('theme') === 'dark' || 
       (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -191,25 +192,62 @@ export default function App() {
 
   // --- Main Admin Layout ---
   return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors duration-200">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors duration-200">
+      {/* Mobile Top Header */}
+      <header className="lg:hidden flex items-center justify-between p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 bg-primary rounded-xl flex items-center justify-center font-bold text-white text-base">
+            P
+          </div>
+          <div>
+            <h2 className="font-extrabold text-sm tracking-wide">PetGuard Pro</h2>
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold tracking-widest uppercase">Admin Desk</span>
+          </div>
+        </div>
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="p-2 text-slate-650 dark:text-slate-350 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-250 dark:hover:bg-slate-700 transition"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+      </header>
+
+      {/* Mobile Sidebar Overlay Backdrop */}
+      {sidebarOpen && (
+        <div 
+          onClick={() => setSidebarOpen(false)} 
+          className="fixed inset-0 z-30 bg-slate-900/60 backdrop-blur-sm lg:hidden transition-opacity"
+        ></div>
+      )}
+
       {/* Sidebar Navigation */}
-      <aside className="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col justify-between p-5">
+      <aside className={`fixed inset-y-0 left-0 z-40 w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col justify-between p-5 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-auto lg:h-screen ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
         <div className="space-y-8">
-          {/* Branding */}
-          <div className="flex items-center space-x-3 px-2">
-            <div className="w-8 h-8 bg-primary rounded-xl flex items-center justify-center font-bold text-white text-base">
-              P
+          {/* Branding (with Close button on mobile) */}
+          <div className="flex items-center justify-between px-2">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-primary rounded-xl flex items-center justify-center font-bold text-white text-base">
+                P
+              </div>
+              <div>
+                <h2 className="font-extrabold text-sm tracking-wide">PetGuard Pro</h2>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold tracking-widest uppercase">Admin Desk</span>
+              </div>
             </div>
-            <div>
-              <h2 className="font-extrabold text-sm tracking-wide">PetGuard Pro</h2>
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold tracking-widest uppercase">Admin Desk</span>
-            </div>
+            <button 
+              onClick={() => setSidebarOpen(false)} 
+              className="lg:hidden p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
           {/* Navigation Links */}
           <nav className="space-y-1.5">
             <button
-              onClick={() => setActiveTab('dashboard')}
+              onClick={() => { setActiveTab('dashboard'); setSidebarOpen(false); }}
               className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition ${
                 activeTab === 'dashboard'
                   ? 'bg-primary text-white'
@@ -221,7 +259,7 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => setActiveTab('users')}
+              onClick={() => { setActiveTab('users'); setSidebarOpen(false); }}
               className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition ${
                 activeTab === 'users'
                   ? 'bg-primary text-white'
@@ -233,7 +271,7 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => setActiveTab('support')}
+              onClick={() => { setActiveTab('support'); setSidebarOpen(false); }}
               className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition ${
                 activeTab === 'support'
                   ? 'bg-primary text-white'
@@ -269,7 +307,7 @@ export default function App() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 p-8 overflow-y-auto max-w-7xl">
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-7xl lg:h-screen">
         {activeTab === 'dashboard' && <DashboardTab />}
         {activeTab === 'users' && <UsersTab />}
         {activeTab === 'support' && <SupportTab />}
