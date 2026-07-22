@@ -131,149 +131,180 @@ document.addEventListener('DOMContentLoaded', () => {
 (function () {
     const featureItems = document.querySelectorAll('.fi');
     
-    // Smartphone mockup displays
-    const statusText = document.getElementById('sim-status-txt');
-    const statusIndicator = document.getElementById('sim-status-ind');
-    const mapMarker = document.getElementById('sim-map-marker');
-    const mapBg = document.getElementById('sim-map-bg');
-    const alertBadge = document.getElementById('sim-fence-alert');
-    
-    const hrVal = document.getElementById('sim-hr-val');
-    const tempVal = document.getElementById('sim-temp-val');
-    const stepsVal = document.getElementById('sim-steps-val');
-    const stepsSub = document.getElementById('sim-steps-sub');
-    const activityIcon = document.getElementById('sim-act-icon');
-    const activityName = document.getElementById('sim-act-name');
-    const activityDesc = document.getElementById('sim-act-desc');
+    // Bottom Navigation Bar Items
+    const navHome = document.getElementById('btn-tab-home');
+    const navMap = document.getElementById('btn-tab-map');
+    const navSupport = document.getElementById('btn-tab-support');
+
+    // Simulator Tab Panels
+    const tabHome = document.getElementById('phone-tab-home');
+    const tabMap = document.getElementById('phone-tab-map');
+    const tabSupport = document.getElementById('phone-tab-support');
 
     let stepCounter = 2450;
     let stepInterval = null;
 
+    function switchSimTab(tabId) {
+        // Reset navigation links
+        [navHome, navMap, navSupport].forEach(btn => btn.classList.remove('active'));
+        [tabHome, tabMap, tabSupport].forEach(panel => panel.classList.remove('active'));
+
+        if (tabId === 'home') {
+            navHome.classList.add('active');
+            tabHome.classList.add('active');
+        } else if (tabId === 'map') {
+            navMap.classList.add('active');
+            tabMap.classList.add('active');
+        } else if (tabId === 'support') {
+            navSupport.classList.add('active');
+            tabSupport.classList.add('active');
+        }
+    }
+
+    navHome.addEventListener('click', () => switchSimTab('home'));
+    navMap.addEventListener('click', () => switchSimTab('map'));
+    navSupport.addEventListener('click', () => switchSimTab('support'));
+
     function updatePhoneDashboard(featureId) {
-        // Clear steps increment loops
+        // Clear active intervals
         if (stepInterval) {
             clearInterval(stepInterval);
             stepInterval = null;
         }
 
-        // Reset default styling classes
-        statusIndicator.className = 'phone-header-status';
+        // Reset status banner widgets
+        const statusBanner = document.getElementById('sim-status-banner');
+        const statusIcon = document.getElementById('sim-status-icon');
+        const statusTitle = document.getElementById('sim-status-title');
+        const statusSub = document.getElementById('sim-status-sub');
+
+        statusBanner.className = 'phone-status-banner';
+        statusIcon.textContent = '✓';
+        statusTitle.textContent = 'Collar Status: Online';
+        statusSub.textContent = 'Collar is online and transmitting data.';
+
+        // Map widgets
+        const mapMarker = document.getElementById('sim-map-marker');
+        const mapBg = document.getElementById('sim-map-bg');
+        const alertBadge = document.getElementById('sim-fence-alert');
+
         mapMarker.className = 'phone-map-marker';
         alertBadge.className = 'phone-fence-alert';
-        
-        document.getElementById('sim-vitals-row').style.opacity = '1';
-        document.getElementById('sim-activity-card').style.opacity = '1';
+
+        // Metric card values
+        const hrVal = document.getElementById('sim-hr-val');
+        const hrSub = document.getElementById('sim-hr-sub');
+        const tempVal = document.getElementById('sim-temp-val');
+        const tempSub = document.getElementById('sim-temp-sub');
+        const stepsVal = document.getElementById('sim-steps-val');
+        const stepsSub = document.getElementById('sim-steps-sub');
+        const actVal = document.getElementById('sim-act-val');
+        const actSub = document.getElementById('sim-act-sub');
+
+        // Today activity values
+        const todayDist = document.getElementById('sim-today-dist');
+        const todayTime = document.getElementById('sim-today-time');
+        const todayActive = document.getElementById('sim-today-active');
+
+        // Reset opacity of metric cards
+        document.querySelectorAll('.phone-metric-card').forEach(card => card.style.opacity = '1');
 
         switch(featureId) {
             case 'feat-connection':
-                statusText.textContent = 'Collar Status: Online';
-                mapMarker.style.top = '50%';
-                mapMarker.style.left = '50%';
-                mapBg.style.backgroundPosition = '0px 0px';
-                
+                switchSimTab('home');
                 hrVal.textContent = '72 BPM';
+                hrSub.textContent = 'Normal vital bounds';
                 tempVal.textContent = '38.2 °C';
+                tempSub.textContent = 'Normal range';
                 stepsVal.textContent = stepCounter + ' steps';
-                stepsSub.textContent = 'Daily goal: 5,000 steps';
-                
-                activityIcon.textContent = '💤';
-                activityName.textContent = 'Resting';
-                activityDesc.textContent = 'Pet behavior classified as resting/sleeping';
+                stepsSub.textContent = '49% of daily goal';
+                actVal.textContent = 'RESTING';
+                actSub.textContent = 'Sleeping / Inactive';
                 break;
-                
+
             case 'feat-vitals':
-                statusText.textContent = 'Collar Status: Online';
-                mapMarker.style.top = '48%';
-                mapMarker.style.left = '48%';
-                mapBg.style.backgroundPosition = '-5px -5px';
-                
+                switchSimTab('home');
                 hrVal.textContent = '78 BPM';
+                hrSub.textContent = 'Normal vital bounds';
                 tempVal.textContent = '38.3 °C';
+                tempSub.textContent = 'Normal range';
                 stepsVal.textContent = stepCounter + ' steps';
                 stepsSub.textContent = 'Telemetry sync active';
-                
-                activityIcon.textContent = '🐕';
-                activityName.textContent = 'Walking';
-                activityDesc.textContent = 'Normal vitals parameters logged';
+                actVal.textContent = 'WALKING';
+                actSub.textContent = 'Normal mobility logged';
                 break;
-                
+
             case 'feat-steps':
-                statusText.textContent = 'Collar Status: Online';
-                mapMarker.style.top = '42%';
-                mapMarker.style.left = '56%';
-                mapBg.style.backgroundPosition = '-20px -10px';
-                
+                switchSimTab('home');
                 hrVal.textContent = '122 BPM';
+                hrSub.textContent = 'Elevated pulse (Active)';
                 tempVal.textContent = '38.8 °C';
+                tempSub.textContent = 'Normal range';
                 stepsVal.textContent = stepCounter + ' steps';
                 stepsSub.textContent = 'Walking actively';
-                
-                activityIcon.textContent = '🏃';
-                activityName.textContent = 'Running';
-                activityDesc.textContent = 'Accelerometer step goals sync active';
+                actVal.textContent = 'RUNNING';
+                actSub.textContent = 'Active play state';
 
-                // Increments steps live
                 stepInterval = setInterval(() => {
                     stepCounter += Math.floor(Math.random() * 2) + 1;
                     stepsVal.textContent = stepCounter + ' steps';
-                    
                     const activeHr = 120 + Math.floor(Math.random() * 6);
                     hrVal.textContent = activeHr + ' BPM';
                 }, 1000);
                 break;
-                
+
             case 'feat-fence':
-                statusText.textContent = 'Collar Status: Online';
+                switchSimTab('map');
                 mapMarker.classList.add('out-of-bounds');
                 mapMarker.style.top = '15%';
                 mapMarker.style.left = '80%';
                 mapBg.style.backgroundPosition = '-80px -60px';
                 alertBadge.classList.add('active');
-                
+
+                // Update home state in background
                 hrVal.textContent = '138 BPM';
+                hrSub.textContent = 'Elevated pulse (Running)';
                 tempVal.textContent = '39.0 °C';
+                tempSub.textContent = 'Fever warning threshold';
                 stepsVal.textContent = stepCounter + ' steps';
-                stepsSub.textContent = 'Outside safe boundary!';
-                
-                activityIcon.textContent = '⚠️';
-                activityName.textContent = 'Breach Escape';
-                activityDesc.textContent = 'Buzzer alarm active / owner notified';
+                stepsSub.textContent = '49% of daily goal';
+                actVal.textContent = 'RUNNING';
+                actSub.textContent = 'Active play state';
+
+                todayDist.textContent = '1.4 km';
+                todayTime.textContent = 'Just now';
+                todayActive.textContent = '55 min';
                 break;
-                
+
             case 'feat-reports':
-                statusText.textContent = 'Collar Status: Online';
-                mapMarker.style.top = '50%';
-                mapMarker.style.left = '50%';
-                mapBg.style.backgroundPosition = '0px 0px';
-                
+                switchSimTab('home');
                 hrVal.textContent = '74 BPM';
+                hrSub.textContent = 'Normal vital bounds';
                 tempVal.textContent = '38.2 °C';
+                tempSub.textContent = 'Normal range';
                 stepsVal.textContent = stepCounter + ' steps';
-                stepsSub.textContent = 'Compiling behavior charts';
-                
-                activityIcon.textContent = '📊';
-                activityName.textContent = 'PDF Logs';
-                activityDesc.textContent = 'Exportable metrics summary compiled';
+                stepsSub.textContent = 'Compiling behavior report';
+                actVal.textContent = 'RESTING';
+                actSub.textContent = 'Sleeping / Inactive';
                 break;
-                
+
             case 'feat-tickets':
-                statusText.textContent = 'Collar Status: Offline';
-                statusIndicator.classList.add('offline');
-                mapMarker.style.top = '50%';
-                mapMarker.style.left = '50%';
-                mapBg.style.backgroundPosition = '0px 0px';
-                
-                document.getElementById('sim-vitals-row').style.opacity = '0.35';
-                document.getElementById('sim-activity-card').style.opacity = '0.35';
-                
+                switchSimTab('support');
+                statusBanner.classList.add('offline');
+                statusIcon.textContent = '⚠️';
+                statusTitle.textContent = 'Collar Status: Offline';
+                statusSub.textContent = 'Collar is currently disconnected or offline.';
+
+                document.querySelectorAll('.phone-metric-card').forEach(card => card.style.opacity = '0.35');
+
                 hrVal.textContent = '-- BPM';
+                hrSub.textContent = 'System Offline';
                 tempVal.textContent = '-- °C';
+                tempSub.textContent = 'System Offline';
                 stepsVal.textContent = 'Offline';
-                stepsSub.textContent = 'Last synced: 1 minute ago';
-                
-                activityIcon.textContent = '🔌';
-                activityName.textContent = 'Disconnected';
-                activityDesc.textContent = 'Collar turned off / system offline';
+                stepsSub.textContent = 'Last synced: 1m ago';
+                actVal.textContent = 'OFFLINE';
+                actSub.textContent = 'Collar turned off';
                 break;
         }
     }
@@ -286,6 +317,16 @@ document.addEventListener('DOMContentLoaded', () => {
             updatePhoneDashboard(id);
         });
     });
+
+    // Support ticket action
+    const ticketBtn = document.getElementById('sim-ticket-btn');
+    const ticketStatus = document.getElementById('sim-ticket-status');
+    if (ticketBtn && ticketStatus) {
+        ticketBtn.addEventListener('click', () => {
+            ticketStatus.textContent = 'Ticket #PG-8041 Opened in Firestore';
+            ticketStatus.style.color = '#10b981';
+        });
+    }
 
     // Default selection on page start
     updatePhoneDashboard('feat-connection');
