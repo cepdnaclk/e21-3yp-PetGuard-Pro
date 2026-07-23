@@ -144,7 +144,7 @@ export default function DashboardTab() {
   const getGatewayInfo = () => {
     setModalContent({
       title: 'Gateway Status',
-      body: 'AWS Serverless API routes: Active\nFirebase RTDB: Operational\nAmazon SQS queue size: 0 (Normal)',
+      body: 'Firebase Cloud Functions: Active\nFirebase RTDB: Operational\nFirebase Cloud Messaging: Active',
     });
   };
 
