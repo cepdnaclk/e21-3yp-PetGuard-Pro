@@ -301,7 +301,8 @@ layout: null
         </div>
     </section>
 
-    <!-- Data Flow Image -->
+    
+   <!-- FIND THIS IN index.html: -->
     <section id="techstack">
         <div class="con">
             <div class="shd rev">
@@ -311,9 +312,95 @@ layout: null
                     Database to feed the owner app.</p>
             </div>
 
-            <div class="tsf-img rev">
-                <img src="./images/high_level_architecture.png" alt="PetGuard Pro System Data Flow Map"
-                    class="tsf-diagram">
+            <!-- REPLACE THIS Entire <div class="adaptive-diagram"> OR <div class="arch-diagram-wrap"> BLOCK WITH: -->
+            <div class="adaptive-diagram" style="width: 100%; max-width: 950px; margin: 0 auto;">
+            <svg viewBox="0 0 1000 520" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg" style="font-family: system-ui, -apple-system, sans-serif;">
+                <defs>
+                <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--diag-arrow)"/>
+                </marker>
+                </defs>
+
+                <!-- Hardware Subsystem Container -->
+                <rect x="20" y="20" width="620" height="480" rx="20" fill="var(--diag-bg-subgraph)" stroke="var(--diag-border-subgraph)" stroke-width="2"/>
+                <text x="330" y="52" text-anchor="middle" font-size="18" font-weight="700" fill="var(--diag-text-main)">Hardware Subsystem</text>
+
+                <!-- GPS Module -->
+                <g transform="translate(50, 70)">
+                <rect width="160" height="80" rx="12" fill="var(--diag-card-gps)" stroke="var(--diag-border-gps)" stroke-width="1.5"/>
+                <text x="80" y="35" text-anchor="middle" font-size="13" font-weight="700" fill="var(--diag-text-gps)">📡 NEO-8M</text>
+                <text x="80" y="55" text-anchor="middle" font-size="12" fill="var(--diag-text-gps)">GPS Module</text>
+                </g>
+
+                <!-- Power Management -->
+                <g transform="translate(50, 180)">
+                <rect width="180" height="100" rx="12" fill="var(--diag-card-power)" stroke="var(--diag-border-power)" stroke-width="1.5"/>
+                <text x="90" y="35" text-anchor="middle" font-size="13" font-weight="700" fill="var(--diag-text-power)">🔋 Power Management</text>
+                <text x="90" y="52" text-anchor="middle" font-size="13" font-weight="700" fill="var(--diag-text-power)">System</text>
+                <text x="90" y="74" text-anchor="middle" font-size="11" fill="var(--diag-text-power)">1500mAh Li-Po</text>
+                </g>
+
+                <!-- Temp Sensor -->
+                <g transform="translate(50, 310)">
+                <rect width="160" height="80" rx="12" fill="var(--diag-card-gps)" stroke="var(--diag-border-gps)" stroke-width="1.5"/>
+                <text x="80" y="35" text-anchor="middle" font-size="13" font-weight="700" fill="var(--diag-text-gps)">🌡️ Temp Sensor</text>
+                <text x="80" y="55" text-anchor="middle" font-size="12" fill="var(--diag-text-gps)">(MLX90614)</text>
+                </g>
+
+                <!-- IMU -->
+                <g transform="translate(50, 410)">
+                <rect width="160" height="70" rx="12" fill="var(--diag-card-power)" stroke="var(--diag-border-power)" stroke-width="1.5"/>
+                <text x="80" y="32" text-anchor="middle" font-size="13" font-weight="700" fill="var(--diag-text-power)">🌐 IMU</text>
+                <text x="80" y="50" text-anchor="middle" font-size="12" fill="var(--diag-text-power)">(MPU6050)</text>
+                </g>
+
+                <!-- ESP32 MCU (Center Node) -->
+                <g transform="translate(280, 200)">
+                <rect width="180" height="110" rx="16" fill="var(--diag-card-mcu)" stroke="var(--diag-border-mcu)" stroke-width="2"/>
+                <text x="90" y="42" text-anchor="middle" font-size="15" font-weight="800" fill="var(--diag-text-mcu)">📱 ESP32 MCU</text>
+                <text x="90" y="65" text-anchor="middle" font-size="12" fill="var(--diag-text-mcu)">Cache</text>
+                <text x="90" y="82" text-anchor="middle" font-size="12" fill="var(--diag-text-mcu)">(Internal Flash)</text>
+                </g>
+
+                <!-- GSM Module -->
+                <g transform="translate(480, 200)">
+                <rect width="140" height="110" rx="12" fill="var(--diag-card-gsm)" stroke="var(--diag-border-gsm)" stroke-width="1.5"/>
+                <text x="70" y="45" text-anchor="middle" font-size="13" font-weight="700" fill="var(--diag-text-gsm)">📟 GSM Module</text>
+                <text x="70" y="68" text-anchor="middle" font-size="12" fill="var(--diag-text-gsm)">SIM800L</text>
+                </g>
+
+                <!-- Cloud Subsystem -->
+                <g transform="translate(690, 185)">
+                <rect width="140" height="140" rx="16" fill="var(--diag-bg-subgraph)" stroke="var(--diag-border-mcu)" stroke-width="2"/>
+                <text x="70" y="35" text-anchor="middle" font-size="14" font-weight="700" fill="var(--diag-text-main)">Cloud</text>
+                <text x="70" y="52" text-anchor="middle" font-size="14" font-weight="700" fill="var(--diag-text-main)">Subsystem</text>
+                <rect x="20" y="70" width="100" height="45" rx="8" fill="var(--diag-card-mcu)" stroke="var(--diag-border-mcu)"/>
+                <text x="70" y="98" text-anchor="middle" font-size="13" font-weight="700" fill="var(--diag-text-mcu)">🔥 Firebase</text>
+                </g>
+
+                <!-- HTTPS Badge -->
+                <g transform="translate(850, 237)">
+                <rect width="90" height="36" rx="18" fill="var(--diag-bg-subgraph)" stroke="var(--diag-border-subgraph)" stroke-width="1"/>
+                <text x="45" y="23" text-anchor="middle" font-size="11" font-weight="600" fill="var(--diag-text-sub)">🔒 https://</text>
+                </g>
+
+                <!-- Software Layer -->
+                <g transform="translate(710, 390)">
+                <rect width="220" height="90" rx="16" fill="var(--diag-bg-subgraph)" stroke="var(--diag-border-gsm)" stroke-width="2"/>
+                <text x="110" y="32" text-anchor="middle" font-size="14" font-weight="700" fill="var(--diag-text-main)">Software (User Layer)</text>
+                <rect x="25" y="45" width="170" height="34" rx="8" fill="var(--diag-card-gsm)" stroke="var(--diag-border-gsm)"/>
+                <text x="110" y="67" text-anchor="middle" font-size="12" font-weight="600" fill="var(--diag-text-gsm)">📱 Flutter Mobile App</text>
+                </g>
+
+                <!-- Signal Paths -->
+                <path d="M 210 110 Q 280 110 320 195" fill="none" stroke="var(--diag-arrow)" stroke-width="2" marker-end="url(#arrow)"/>
+                <path d="M 230 230 L 275 230" fill="none" stroke="var(--diag-arrow)" stroke-width="2" marker-end="url(#arrow)"/>
+                <path d="M 210 350 Q 260 350 300 315" fill="none" stroke="var(--diag-arrow)" stroke-width="2" marker-end="url(#arrow)"/>
+                <path d="M 210 445 Q 320 445 350 315" fill="none" stroke="var(--diag-arrow)" stroke-width="2" marker-end="url(#arrow)"/>
+                <path d="M 460 255 L 475 255" fill="none" stroke="var(--diag-arrow)" stroke-width="2" marker-end="url(#arrow)"/>
+                <path d="M 620 255 L 685 255" fill="none" stroke="var(--diag-arrow)" stroke-width="2" marker-end="url(#arrow)"/>
+                <path d="M 760 325 L 760 385" fill="none" stroke="var(--diag-arrow)" stroke-width="2" marker-end="url(#arrow)"/>
+            </svg>
             </div>
         </div>
     </section>
@@ -1187,6 +1274,9 @@ layout: null
 
     <!-- Link to External JavaScript -->
     <script src="script.js"></script>
+
+    
+
 </body>
 
 </html>

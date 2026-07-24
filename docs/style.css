@@ -1917,3 +1917,58 @@ footer {
 .lightbox-close:hover {
   color: var(--accent);
 }
+
+/* Default (Dark Theme) Diagram Custom Properties */
+:root {
+  --diag-bg-subgraph: rgba(21, 29, 48, 0.7);
+  --diag-border-subgraph: rgba(255, 255, 255, 0.15);
+  --diag-text-main: #f8fafc;
+  --diag-text-sub: #94a3b8;
+  --diag-arrow: #94a3b8;
+
+  --diag-card-gps: #1e293b;
+  --diag-border-gps: #f59e0b;
+  --diag-text-gps: #fde68a;
+
+  --diag-card-power: #1e293b;
+  --diag-border-power: #a855f7;
+  --diag-text-power: #e9d5ff;
+
+  --diag-card-mcu: #1e3a8a;
+  --diag-border-mcu: #3b82f6;
+  --diag-text-mcu: #ffffff;
+
+  --diag-card-gsm: #14532d;
+  --diag-border-gsm: #22c55e;
+  --diag-text-gsm: #dcfce7;
+}
+
+/* Light Theme Diagram Overrides (Activated via [data-theme="light"]) */
+[data-theme="light"] {
+  --diag-bg-subgraph: #ffffff;
+  --diag-border-subgraph: #cbd5e1;
+  --diag-text-main: #0f172a;
+  --diag-text-sub: #475569;
+  --diag-arrow: #64748b;
+
+  --diag-card-gps: #fef3c7;
+  --diag-border-gps: #f59e0b;
+  --diag-text-gps: #78350f;
+
+  --diag-card-power: #f3e8ff;
+  --diag-border-power: #a855f7;
+  --diag-text-power: #581c87;
+
+  --diag-card-mcu: #dbeafe;
+  --diag-border-mcu: #2563eb;
+  --diag-text-mcu: #1e3a8a;
+
+  --diag-card-gsm: #dcfce7;
+  --diag-border-gsm: #16a34a;
+  --diag-text-gsm: #14532d;
+}
+
+/* Smooth transitions */
+.adaptive-diagram svg * {
+  transition: fill 0.3s ease, stroke 0.3s ease, color 0.3s ease;
+}
