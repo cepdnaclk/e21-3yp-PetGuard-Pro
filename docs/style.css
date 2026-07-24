@@ -1968,7 +1968,29 @@ footer {
   --diag-text-gsm: #14532d;
 }
 
+
 /* Smooth transitions */
 .adaptive-diagram svg * {
   transition: fill 0.3s ease, stroke 0.3s ease, color 0.3s ease;
+}
+
+/* Reduce top/bottom padding specifically for techstack section */
+#techstack {
+  padding-top: 60px;
+  padding-bottom: 40px;
+}
+
+#techstack .shd {
+  margin-bottom: 12px;
+}
+
+/* Ensure SVG renders tightly without canvas overflow */
+#techstack .adaptive-diagram {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+#techstack .adaptive-diagram svg {
+  display: block;
+  max-height: 480px;
 }
