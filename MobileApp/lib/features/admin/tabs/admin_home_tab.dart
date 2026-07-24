@@ -342,7 +342,7 @@ class AdminHomeTab extends StatelessWidget {
                   icon: Icons.cloud_done_outlined,
                   color: Colors.blue,
                   isDark: isDark,
-                  onTap: () => _showDialog(context, 'Gateway Status', 'AWS Serverless API routes: Active\nFirebase RTDB: Operational\nAmazon SQS queue size: 0 (Normal)'),
+                  onTap: () => _showDialog(context, 'Gateway Status', 'Firebase Cloud Functions: Active\nFirebase RTDB: Operational\nFirebase Cloud Messaging: Active'),
                 ),
               ),
             ],
