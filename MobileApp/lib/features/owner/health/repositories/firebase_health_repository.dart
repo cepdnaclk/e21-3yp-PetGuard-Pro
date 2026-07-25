@@ -55,11 +55,31 @@ class FirebaseHealthRepository implements HealthRepository {
 
     if (snapshot.value == null) return [];
 
-    final Map<dynamic, dynamic> raw = snapshot.value as Map;
-    return raw.values
-        .map((e) => HealthVitals.fromJson(Map<String, dynamic>.from(e as Map)))
-        .toList()
-      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    final value = snapshot.value;
+    final List<HealthVitals> list = [];
+    if (value is Map) {
+      for (var e in value.values) {
+        try {
+          if (e is Map) {
+            list.add(HealthVitals.fromJson(Map<String, dynamic>.from(e)));
+          }
+        } catch (err) {
+          debugPrint('Error parsing health history map entry: $err');
+        }
+      }
+    } else if (value is List) {
+      for (var e in value) {
+        try {
+          if (e is Map) {
+            list.add(HealthVitals.fromJson(Map<String, dynamic>.from(e)));
+          }
+        } catch (err) {
+          debugPrint('Error parsing health history list entry: $err');
+        }
+      }
+    }
+    list.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    return list;
   }
 
   @override
@@ -74,12 +94,31 @@ class FirebaseHealthRepository implements HealthRepository {
         .map((event) {
       if (event.snapshot.value == null) return <HealthVitals>[];
 
-      final Map<dynamic, dynamic> raw = event.snapshot.value as Map;
-      return raw.values
-          .map(
-              (e) => HealthVitals.fromJson(Map<String, dynamic>.from(e as Map)))
-          .toList()
-        ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+      final value = event.snapshot.value;
+      final List<HealthVitals> list = [];
+      if (value is Map) {
+        for (var e in value.values) {
+          try {
+            if (e is Map) {
+              list.add(HealthVitals.fromJson(Map<String, dynamic>.from(e)));
+            }
+          } catch (err) {
+            debugPrint('Error parsing health history stream map entry: $err');
+          }
+        }
+      } else if (value is List) {
+        for (var e in value) {
+          try {
+            if (e is Map) {
+              list.add(HealthVitals.fromJson(Map<String, dynamic>.from(e)));
+            }
+          } catch (err) {
+            debugPrint('Error parsing health history stream list entry: $err');
+          }
+        }
+      }
+      list.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+      return list;
     });
   }
 }

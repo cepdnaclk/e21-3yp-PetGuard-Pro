@@ -81,6 +81,7 @@
 // lib/features/owner/activity/repositories/firebase_activity_repository.dart
 
 import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/foundation.dart';
 import '../models/activity_data.dart';
 
 class FirebaseActivityRepository {
@@ -93,8 +94,8 @@ class FirebaseActivityRepository {
   Stream<ActivityData?> getCurrentActivityStream() {
     return _db.child('pets/$petId/activity/current').onValue.map((event) {
       final data = event.snapshot.value;
-      if (data == null) return null;
-      return ActivityData.fromMap(data as Map);
+      if (data == null || data is! Map) return null;
+      return ActivityData.fromMap(data);
     });
   }
 
@@ -108,8 +109,30 @@ class FirebaseActivityRepository {
         .map((event) {
       final data = event.snapshot.value;
       if (data == null) return [];
-      final map = data as Map;
-      final list = map.values.map((v) => ActivityData.fromMap(v as Map)).toList();
+      
+      final List<ActivityData> list = [];
+      if (data is Map) {
+        for (var v in data.values) {
+          try {
+            if (v is Map) {
+              list.add(ActivityData.fromMap(v));
+            }
+          } catch (e) {
+            debugPrint('Error parsing activity history map entry: $e');
+          }
+        }
+      } else if (data is List) {
+        for (var v in data) {
+          try {
+            if (v is Map) {
+              list.add(ActivityData.fromMap(v));
+            }
+          } catch (e) {
+            debugPrint('Error parsing activity history list entry: $e');
+          }
+        }
+      }
+      
       list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
       return list;
     });
@@ -125,9 +148,29 @@ class FirebaseActivityRepository {
         .map((event) {
       final data = event.snapshot.value;
       if (data == null) return [];
-      final map = data as Map;
-      final list =
-          map.values.map((v) => ActivitySummary.fromMap(v as Map)).toList();
+      
+      final List<ActivitySummary> list = [];
+      if (data is Map) {
+        for (var v in data.values) {
+          try {
+            if (v is Map) {
+              list.add(ActivitySummary.fromMap(v));
+            }
+          } catch (e) {
+            debugPrint('Error parsing daily summary map entry: $e');
+          }
+        }
+      } else if (data is List) {
+        for (var v in data) {
+          try {
+            if (v is Map) {
+              list.add(ActivitySummary.fromMap(v));
+            }
+          } catch (e) {
+            debugPrint('Error parsing daily summary list entry: $e');
+          }
+        }
+      }
       list.sort((a, b) => b.date.compareTo(a.date));
       return list;
     });
@@ -144,8 +187,29 @@ class FirebaseActivityRepository {
         .map((event) {
       final data = event.snapshot.value;
       if (data == null) return [];
-      final map = data as Map;
-      final list = map.values.map((v) => ActivityData.fromMap(v as Map)).toList();
+      
+      final List<ActivityData> list = [];
+      if (data is Map) {
+        for (var v in data.values) {
+          try {
+            if (v is Map) {
+              list.add(ActivityData.fromMap(v));
+            }
+          } catch (e) {
+            debugPrint('Error parsing impact alert map entry: $e');
+          }
+        }
+      } else if (data is List) {
+        for (var v in data) {
+          try {
+            if (v is Map) {
+              list.add(ActivityData.fromMap(v));
+            }
+          } catch (e) {
+            debugPrint('Error parsing impact alert list entry: $e');
+          }
+        }
+      }
       list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
       return list;
     });

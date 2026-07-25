@@ -365,40 +365,42 @@ class _LiveStatCard extends StatelessWidget {
     return Container(
       height: double.infinity,
       decoration: _PgDecor.card(context),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(
         children: [
           Container(
-            width: 38,
-            height: 38,
+            width: 34,
+            height: 34,
             decoration: BoxDecoration(
               color: _PgColors.soft(context),
-              borderRadius: BorderRadius.circular(13),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: _PgColors.primary(context), size: 20),
+            child: Icon(icon, color: _PgColors.primary(context), size: 18),
           ),
-          const SizedBox(width: 14),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  color: _PgColors.text(context),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: _PgColors.text(context),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: _PgColors.subtext(context),
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: _PgColors.subtext(context),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
