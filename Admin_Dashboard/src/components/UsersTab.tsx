@@ -402,7 +402,7 @@ export default function UsersTab() {
                         <label className="text-xs text-slate-400 dark:text-slate-500 block mb-1">New Unique Pet ID:</label>
                         <input
                           type="text"
-                          placeholder="e.g. default_pet, savintrack"
+                          placeholder=""
                           value={newPetId}
                           onChange={(e) => {
                             setNewPetId(e.target.value);

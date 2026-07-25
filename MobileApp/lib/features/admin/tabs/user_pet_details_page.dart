@@ -79,7 +79,7 @@ class _UserPetDetailsPageState extends State<UserPetDetailsPage> {
                       controller: petIdController,
                       decoration: InputDecoration(
                         labelText: "Enter New Pet ID",
-                        hintText: "e.g., default_pet, savintrack",
+                        hintText: "",
                         errorText: errorMessage,
                         border: const OutlineInputBorder(),
                       ),
