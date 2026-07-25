@@ -263,6 +263,11 @@ class AuthRepository {
       return LoginResult(errorMessage: errorMsg);
     }
   }
+
+  /// Sends a password reset email using Firebase Auth
+  Future<void> sendPasswordResetEmail(String email) async {
+    await _auth.sendPasswordResetEmail(email: email);
+  }
 }
 
 // ─── Login Result class ────────────────────────────────────────────────────────
