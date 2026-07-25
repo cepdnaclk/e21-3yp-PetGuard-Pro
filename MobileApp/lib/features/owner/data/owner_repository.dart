@@ -62,19 +62,45 @@ class OwnerRepository {
   Future<List<Map<String, dynamic>>> fetchUserPets() async {
     final user = _auth.currentUser;
     if (user == null) return [];
+
+    // Get selectedPetId from user document as a fallback
+    String selectedPetId = '';
+    try {
+      final userDoc = await _firestore.collection('users').doc(user.uid).get();
+      selectedPetId = userDoc.data()?['selectedPetId'] as String? ?? '';
+    } catch (e) {
+      // Fallback
+    }
+
     final snapshot = await _firestore
         .collection('pets')
         .where('ownerUid', isEqualTo: user.uid)
         .get();
-    return snapshot.docs
-        .map((doc) => {...doc.data(), '_docId': doc.id})
-        .toList();
+    return snapshot.docs.map((doc) {
+      final data = doc.data();
+      final String existingPetId = data['petId'] as String? ?? '';
+      return {
+        ...data,
+        'petId': existingPetId.isNotEmpty ? existingPetId : selectedPetId,
+        '_docId': doc.id,
+      };
+    }).toList();
   }
 
   // Fetch single user pet
   Future<Map<String, dynamic>?> fetchUserPet() async {
     final user = _auth.currentUser;
     if (user == null) return null;
+
+    // Get selectedPetId from user document as a fallback
+    String selectedPetId = '';
+    try {
+      final userDoc = await _firestore.collection('users').doc(user.uid).get();
+      selectedPetId = userDoc.data()?['selectedPetId'] as String? ?? '';
+    } catch (e) {
+      // Fallback
+    }
+
     final pets = await _firestore
         .collection('pets')
         .where('ownerUid', isEqualTo: user.uid)
@@ -82,7 +108,14 @@ class OwnerRepository {
         .get();
     if (pets.docs.isEmpty) return null;
     final petDoc = pets.docs.first;
-    return {...petDoc.data(), '_docId': petDoc.id};
+    final data = petDoc.data();
+    final String existingPetId = data['petId'] as String? ?? '';
+
+    return {
+      ...data,
+      'petId': existingPetId.isNotEmpty ? existingPetId : selectedPetId,
+      '_docId': petDoc.id,
+    };
   }
 
   // Save pet profile
@@ -187,6 +220,16 @@ class OwnerRepository {
   Future<Map<String, dynamic>?> fetchUserPetWithId() async {
     final user = _auth.currentUser;
     if (user == null) return null;
+
+    // Get selectedPetId from user document as a fallback
+    String selectedPetId = '';
+    try {
+      final userDoc = await _firestore.collection('users').doc(user.uid).get();
+      selectedPetId = userDoc.data()?['selectedPetId'] as String? ?? '';
+    } catch (e) {
+      // Fallback
+    }
+
     final querySnap = await _firestore
         .collection('pets')
         .where('ownerUid', isEqualTo: user.uid)
@@ -194,7 +237,14 @@ class OwnerRepository {
         .get();
     if (querySnap.docs.isEmpty) return null;
     final petDoc = querySnap.docs.first;
-    return <String, dynamic>{...petDoc.data(), '_docId': petDoc.id};
+    final data = petDoc.data();
+    final String existingPetId = data['petId'] as String? ?? '';
+
+    return <String, dynamic>{
+      ...data,
+      'petId': existingPetId.isNotEmpty ? existingPetId : selectedPetId,
+      '_docId': petDoc.id,
+    };
   }
 
   // Sign out user
