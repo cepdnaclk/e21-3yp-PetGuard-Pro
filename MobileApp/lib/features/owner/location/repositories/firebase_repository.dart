@@ -154,15 +154,31 @@ class FirebaseRepository implements CloudRepository {
           .orderByKey()
           .get();
 
-      if (!snapshot.exists) return [];
+      if (!snapshot.exists || snapshot.value == null) return [];
 
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      final value = snapshot.value;
       final List<Map<String, dynamic>> history = [];
-      for (var entry in data.entries) {
-        try {
-          history.add(Map<String, dynamic>.from(entry.value as Map));
-        } catch (e) {
-          debugPrint('Failed to parse history entry: $e');
+
+      if (value is Map) {
+        final data = Map<dynamic, dynamic>.from(value);
+        for (var entry in data.entries) {
+          try {
+            if (entry.value is Map) {
+              history.add(Map<String, dynamic>.from(entry.value as Map));
+            }
+          } catch (e) {
+            debugPrint('Failed to parse history entry: $e');
+          }
+        }
+      } else if (value is List) {
+        for (var element in value) {
+          try {
+            if (element is Map) {
+              history.add(Map<String, dynamic>.from(element));
+            }
+          } catch (e) {
+            debugPrint('Failed to parse history entry from list: $e');
+          }
         }
       }
 
@@ -183,13 +199,8 @@ class FirebaseRepository implements CloudRepository {
   @override
   Future<void> saveHistoryEntry(
       String petId, Map<String, dynamic> entry) async {
-    try {
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      await _database.ref('pets/$petId/location_history/$timestamp').set(entry);
-      debugPrint('Saved history entry to Firebase');
-    } catch (e) {
-      debugPrint('Failed to save history entry: $e');
-    }
+    final newRef = _database.ref('pets/$petId/location_history').push();
+    await newRef.set(entry);
   }
 
   /// Safely parse a timestamp string that may contain +05:30 or Z suffix.
@@ -221,13 +232,29 @@ class FirebaseRepository implements CloudRepository {
         .map((event) {
       if (event.snapshot.value == null) return <Map<String, dynamic>>[];
 
-      final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+      final value = event.snapshot.value;
       final List<Map<String, dynamic>> history = [];
-      for (var entry in data.entries) {
-        try {
-          history.add(Map<String, dynamic>.from(entry.value as Map));
-        } catch (e) {
-          debugPrint('Failed to parse history entry in stream: $e');
+
+      if (value is Map) {
+        final data = Map<dynamic, dynamic>.from(value);
+        for (var entry in data.entries) {
+          try {
+            if (entry.value is Map) {
+              history.add(Map<String, dynamic>.from(entry.value as Map));
+            }
+          } catch (e) {
+            debugPrint('Failed to parse history entry in stream: $e');
+          }
+        }
+      } else if (value is List) {
+        for (var element in value) {
+          try {
+            if (element is Map) {
+              history.add(Map<String, dynamic>.from(element));
+            }
+          } catch (e) {
+            debugPrint('Failed to parse history entry in stream list: $e');
+          }
         }
       }
 
