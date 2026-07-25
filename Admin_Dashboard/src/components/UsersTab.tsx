@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, where } from 'firebase/firestore';
 import { ref, get, set } from 'firebase/database';
 import { firestore, rtdb } from '../firebase';
 import { Search, UserCheck, UserX, Trash2, PlusCircle, Info } from 'lucide-react';
@@ -24,6 +24,10 @@ export default function UsersTab() {
   const [allocating, setAllocating] = useState(false);
   const [allocatedIds, setAllocatedIds] = useState<string[]>([]);
   const [allocationError, setAllocationError] = useState<string | null>(null);
+  
+  // Custom states for pet display and reassignment toggling
+  const [selectedUserPet, setSelectedUserPet] = useState<any | null>(null);
+  const [showReassignForm, setShowReassignForm] = useState(false);
 
   // 1. Subscribe to Firestore users stream
   useEffect(() => {
@@ -43,6 +47,31 @@ export default function UsersTab() {
 
     return () => unsubscribe();
   }, [selectedUser]);
+
+  // Reset showReassignForm and fetch pet details when selectedUser changes
+  useEffect(() => {
+    setShowReassignForm(false);
+    if (!selectedUser) {
+      setSelectedUserPet(null);
+      return;
+    }
+    const q = query(
+      collection(firestore, 'pets'),
+      where('ownerUid', '==', selectedUser.id)
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (!snapshot.empty) {
+        setSelectedUserPet({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() });
+      } else {
+        setSelectedUserPet(null);
+      }
+    }, (err) => {
+      console.error('Error fetching pet details:', err);
+      setSelectedUserPet(null);
+    });
+
+    return () => unsubscribe();
+  }, [selectedUser?.id]);
 
   // 2. Fetch already allocated RTDB pet IDs
   useEffect(() => {
@@ -104,6 +133,16 @@ export default function UsersTab() {
       return;
     }
 
+    // Double confirmation prompt by asking the user to re-type the pet ID
+    const confirmId = window.prompt(`Please re-type the Harness Pet ID "${petId}" to confirm assignment:`);
+    if (confirmId === null) {
+      return; // Cancelled
+    }
+    if (confirmId.trim() !== petId) {
+      setAllocationError('Harness Pet ID confirmation did not match. Please try again.');
+      return;
+    }
+
     setAllocating(true);
     setAllocationError(null);
 
@@ -135,6 +174,7 @@ export default function UsersTab() {
 
       // Reset
       setNewPetId('');
+      setShowReassignForm(false);
       alert(`Harness ID "${petId}" successfully provisioned and linked to ${selectedUser.name}!`);
     } catch (err: any) {
       setAllocationError(err.message || 'An error occurred during allocation');
@@ -292,42 +332,116 @@ export default function UsersTab() {
                 </div>
               </div>
 
-              {/* Harness Allocation Form */}
-              <div className="border-t border-slate-100 dark:border-slate-700/40 pt-4 space-y-4">
-                <h4 className="font-bold text-slate-800 dark:text-slate-100 text-sm flex items-center">
-                  <PlusCircle className="w-4 h-4 mr-2 text-teal-500" />
-                  Assign Telemetric Harness (PetID)
-                </h4>
-
-                <form onSubmit={handleAllocateHarness} className="space-y-3">
-                  <div>
-                    <label className="text-xs text-slate-400 dark:text-slate-500 block mb-1">New Unique Pet ID:</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. default_pet, savintrack"
-                      value={newPetId}
-                      onChange={(e) => {
-                        setNewPetId(e.target.value);
-                        setAllocationError(null);
-                      }}
-                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 text-sm outline-none text-slate-700 dark:text-slate-200"
-                    />
+              {/* Pet Details Section */}
+              {selectedUserPet ? (
+                <div className="border-t border-slate-100 dark:border-slate-700/40 pt-4 space-y-3">
+                  <h4 className="font-bold text-slate-800 dark:text-slate-100 text-sm flex items-center">
+                    <span className="w-2.5 h-2.5 rounded-full bg-teal-500 mr-2"></span>
+                    Registered Pet Details
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3 text-xs bg-slate-50 dark:bg-slate-900/40 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800/60">
+                    <div>
+                      <span className="text-slate-400 dark:text-slate-500 block">Pet Name</span>
+                      <span className="font-semibold text-slate-700 dark:text-slate-200">{selectedUserPet.petName || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 dark:text-slate-500 block">Age Group</span>
+                      <span className="font-semibold text-slate-700 dark:text-slate-200">{selectedUserPet.ageGroup || 'N/A'}</span>
+                    </div>
+                    <div className="mt-1">
+                      <span className="text-slate-400 dark:text-slate-500 block">Harness Size (Dog Size)</span>
+                      <span className="font-semibold text-slate-700 dark:text-slate-200">{selectedUserPet.size || 'N/A'}</span>
+                    </div>
+                    <div className="mt-1">
+                      <span className="text-slate-400 dark:text-slate-500 block">Activity Level</span>
+                      <span className="font-semibold text-slate-700 dark:text-slate-200">{selectedUserPet.activityLevel || 'N/A'}</span>
+                    </div>
+                    <div className="mt-1">
+                      <span className="text-slate-400 dark:text-slate-500 block">Coat Type</span>
+                      <span className="font-semibold text-slate-700 dark:text-slate-200">{selectedUserPet.coatType || 'N/A'}</span>
+                    </div>
+                    <div className="mt-1">
+                      <span className="text-slate-400 dark:text-slate-500 block">Flat Faced?</span>
+                      <span className="font-semibold text-slate-700 dark:text-slate-200">{selectedUserPet.isFlatFaced || 'N/A'}</span>
+                    </div>
                   </div>
+                </div>
+              ) : (
+                <div className="border-t border-slate-100 dark:border-slate-700/40 pt-4 text-xs text-slate-400 dark:text-slate-500 italic">
+                  No registered pet profile found for this user yet.
+                </div>
+              )}
 
-                  {allocationError && (
-                    <p className="text-xs text-rose-500 bg-rose-50 dark:bg-rose-950/20 border border-rose-500/20 p-2.5 rounded-lg">
-                      {allocationError}
-                    </p>
-                  )}
+              {/* Harness Allocation / Reassignment Panel */}
+              <div className="border-t border-slate-100 dark:border-slate-700/40 pt-4 space-y-4">
+                {selectedUser.selectedPetId && !showReassignForm ? (
+                  <div className="space-y-3 bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                      This user currently has a hardware harness assigned.
+                    </div>
+                    <div className="flex justify-between items-center bg-teal-50/50 dark:bg-teal-950/20 p-2.5 rounded-lg border border-teal-200/40 text-sm font-semibold">
+                      <span className="text-teal-700 dark:text-teal-400">Assigned Harness (Pet ID):</span>
+                      <span className="font-mono text-teal-800 dark:text-teal-300">{selectedUser.selectedPetId}</span>
+                    </div>
+                    <button
+                      onClick={() => setShowReassignForm(true)}
+                      className="w-full py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold transition flex items-center justify-center border border-slate-200 dark:border-slate-600"
+                    >
+                      Change Harness (Assign another Pet ID)
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <h4 className="font-bold text-slate-800 dark:text-slate-100 text-sm flex items-center">
+                      <PlusCircle className="w-4 h-4 mr-2 text-teal-500" />
+                      {selectedUser.selectedPetId ? 'Change Harness Assignment' : 'Assign Telemetric Harness (PetID)'}
+                    </h4>
 
-                  <button
-                    type="submit"
-                    disabled={allocating}
-                    className="w-full py-2.5 bg-primary hover:bg-teal-700 text-white rounded-lg text-sm font-bold transition flex items-center justify-center disabled:opacity-50"
-                  >
-                    {allocating ? 'Validating & Deploying...' : 'Approve Harness Assignment'}
-                  </button>
-                </form>
+                    <form onSubmit={handleAllocateHarness} className="space-y-3">
+                      <div>
+                        <label className="text-xs text-slate-400 dark:text-slate-500 block mb-1">New Unique Pet ID:</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. default_pet, savintrack"
+                          value={newPetId}
+                          onChange={(e) => {
+                            setNewPetId(e.target.value);
+                            setAllocationError(null);
+                          }}
+                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 text-sm outline-none text-slate-700 dark:text-slate-200"
+                        />
+                      </div>
+
+                      {allocationError && (
+                        <p className="text-xs text-rose-500 bg-rose-50 dark:bg-rose-950/20 border border-rose-500/20 p-2.5 rounded-lg">
+                          {allocationError}
+                        </p>
+                      )}
+
+                      <div className="flex gap-2">
+                        {selectedUser.selectedPetId && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowReassignForm(false);
+                              setAllocationError(null);
+                            }}
+                            className="py-2.5 px-4 bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200 rounded-lg text-sm font-bold transition"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                        <button
+                          type="submit"
+                          disabled={allocating}
+                          className="flex-1 py-2.5 bg-primary hover:bg-teal-700 text-white rounded-lg text-sm font-bold transition flex items-center justify-center disabled:opacity-50"
+                        >
+                          {allocating ? 'Validating & Deploying...' : 'Approve Harness Assignment'}
+                        </button>
+                      </div>
+                    </form>
+                  </>
+                )}
 
                 {/* Pre-allocated list preview */}
                 {allocatedIds.length > 0 && (
