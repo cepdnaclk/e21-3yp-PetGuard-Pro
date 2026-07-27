@@ -520,6 +520,7 @@ class _StatusBannerState extends State<_StatusBanner> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        /*
         // 1. System Status Row / Alert Banner
         Container(
           padding: const EdgeInsets.all(16),
@@ -575,6 +576,7 @@ class _StatusBannerState extends State<_StatusBanner> {
         ),
         
         const SizedBox(height: 28),
+        */
         
         // Subtitle
         Text(
