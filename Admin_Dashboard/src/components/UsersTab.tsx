@@ -525,7 +525,7 @@ export default function UsersTab() {
 
             {/* Modal Search Bar & Size Filter */}
             <div className="p-3 border-b border-slate-150/40 dark:border-slate-800/40 bg-slate-50/20 dark:bg-slate-950/5 flex items-center justify-between gap-3">
-              <div className="flex items-center flex-1 bg-slate-100/50 dark:bg-slate-955/40 border border-slate-200/60 dark:border-slate-800 px-2.5 py-1.5 rounded-xl">
+              <div className="flex items-center flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800/80 px-2.5 py-1.5 rounded-xl">
                 <Search className="w-3.5 h-3.5 text-slate-400 mr-2 shrink-0" />
                 <input
                   type="text"
@@ -535,11 +535,11 @@ export default function UsersTab() {
                   className="bg-transparent text-[11px] w-full outline-none text-slate-700 dark:text-slate-200 placeholder-slate-400"
                 />
               </div>
-              <div className="flex items-center bg-slate-100/50 dark:bg-slate-955/40 border border-slate-200/60 dark:border-slate-800 px-2 py-1 rounded-xl shrink-0">
+              <div className="flex items-center bg-slate-50 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800/80 px-2 py-1 rounded-xl shrink-0">
                 <select
                   value={modalSizeFilter}
                   onChange={(e) => setModalSizeFilter(e.target.value)}
-                  className="bg-transparent text-[11px] font-bold text-slate-650 dark:text-slate-300 outline-none border-none cursor-pointer pr-1"
+                  className="bg-transparent text-[11px] font-bold text-slate-655 dark:text-slate-300 outline-none border-none cursor-pointer pr-1"
                 >
                   <option value="all" className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200">All Sizes</option>
                   <option value="Small" className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200">Small</option>
