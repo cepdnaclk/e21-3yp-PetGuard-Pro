@@ -324,9 +324,9 @@ export default function UsersTab() {
                     {(selectedUser.status || 'Pending').toUpperCase()}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400 dark:text-slate-500">Currently Assigned Harness:</span>
-                  <span className="font-mono text-xs font-bold text-teal-600 dark:text-teal-400">
+                <div className="flex justify-between items-start gap-2">
+                  <span className="text-slate-400 dark:text-slate-500 shrink-0">Currently Assigned Harness:</span>
+                  <span className="font-mono text-xs font-bold text-teal-600 dark:text-teal-400 break-all text-right">
                     {selectedUser.selectedPetId || 'None'}
                   </span>
                 </div>
@@ -356,7 +356,7 @@ export default function UsersTab() {
                       <span className="text-slate-400 dark:text-slate-500 block">Activity Level</span>
                       <span className="font-semibold text-slate-700 dark:text-slate-200">{selectedUserPet.activityLevel || 'N/A'}</span>
                     </div>
-                    <div className="mt-1">
+                    <div>
                       <span className="text-slate-400 dark:text-slate-500 block">Coat Type</span>
                       <span className="font-semibold text-slate-700 dark:text-slate-200">{selectedUserPet.coatType || 'N/A'}</span>
                     </div>
@@ -379,9 +379,9 @@ export default function UsersTab() {
                     <div className="text-xs text-slate-500 dark:text-slate-400">
                       This user currently has a hardware harness assigned.
                     </div>
-                    <div className="flex justify-between items-center bg-teal-50/50 dark:bg-teal-950/20 p-2.5 rounded-lg border border-teal-200/40 text-sm font-semibold">
-                      <span className="text-teal-700 dark:text-teal-400">Assigned Harness (Pet ID):</span>
-                      <span className="font-mono text-teal-800 dark:text-teal-300">{selectedUser.selectedPetId}</span>
+                    <div className="flex flex-col gap-1 bg-teal-50/50 dark:bg-teal-950/20 p-3 rounded-lg border border-teal-200/40 text-sm font-semibold">
+                      <span className="text-teal-700 dark:text-teal-400 text-xs uppercase tracking-wider font-bold">Assigned Harness (Pet ID)</span>
+                      <span className="font-mono text-teal-800 dark:text-teal-300 break-all select-all">{selectedUser.selectedPetId}</span>
                     </div>
                     <button
                       onClick={() => setShowReassignForm(true)}
