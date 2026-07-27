@@ -156,12 +156,21 @@ export default function DashboardTab() {
         const petsData = snapshot.val();
         const records = Object.entries(petsData).map(([id, val]: [string, any]) => {
           const current = val.activity?.current || {};
-          const loc = val.location || {};
+          const loc = val.current_location || val.location || {};
+          const health = val.health || {};
+          const battery = val.battery || {};
+          
           return {
             id,
             activityType: (current.activity_type || 'Unknown').toUpperCase(),
             impact: current.impact_detected ? 'TRIGGERED' : 'NONE',
-            coords: loc.latitude && loc.longitude ? `${loc.latitude}, ${loc.longitude}` : 'No GPS signal',
+            impactSeverity: current.impact_severity || 0,
+            stepCount: current.step_count || 0,
+            activeMinutes: current.active_minutes || 0,
+            heartRate: health.heart_rate || 'N/A',
+            temperature: health.temperature ? `${Number(health.temperature).toFixed(1)} °C` : 'N/A',
+            battery: battery.percentage !== undefined ? `${battery.percentage}%` : '100%',
+            coords: loc.latitude && loc.longitude ? `${Number(loc.latitude).toFixed(6)}, ${Number(loc.longitude).toFixed(6)}` : 'No GPS signal',
           };
         });
         setReportData(records);
@@ -317,70 +326,125 @@ export default function DashboardTab() {
       )}
 
       {/* Report Modal */}
-      {reportData && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl max-w-3xl w-full p-6 shadow-xl space-y-4 my-8">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
-              <div>
-                <h4 className="text-lg font-bold text-slate-800 dark:text-slate-100">Firebase Telemetry Traffic Report</h4>
-                <p className="text-xs text-slate-400 dark:text-slate-400">Generated: {new Date().toLocaleString()}</p>
-              </div>
-              <div className="flex space-x-2">
-                <button onClick={() => window.print()} className="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg transition">
-                  Print Report
-                </button>
-                <button onClick={() => setReportData(null)} className="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-lg transition">
-                  Close
-                </button>
-              </div>
-            </div>
+      {reportData && (() => {
+        const alertsCount = reportData.filter(r => r.impact === 'TRIGGERED').length;
 
-            <div className="space-y-4 text-slate-800 dark:text-slate-100">
-              <div className="grid grid-cols-2 gap-4 text-xs bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-700/50">
-                <div>
-                  <p className="text-slate-400 dark:text-slate-500">Active Sensors Frequency:</p>
-                  <p className="font-bold">{Math.round(currentSpeed)} pkts/min</p>
-                </div>
-                <div>
-                  <p className="text-slate-400 dark:text-slate-500">Total Registered Harness Nodes:</p>
-                  <p className="font-bold">{reportData.length}</p>
+        return (
+          <div id="print-overlay" className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div id="printable-area" className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl max-w-4xl w-full p-0 shadow-xl overflow-hidden my-8">
+              
+              {/* Report Header Banner */}
+              <div className="bg-gradient-to-r from-teal-600 to-emerald-600 text-white p-6 relative">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-xl font-extrabold tracking-wide uppercase">PetGuard Pro</h3>
+                    <h4 className="text-sm font-semibold text-teal-100 mt-1">Live Database Telemetry & Traffic Report</h4>
+                    <p className="text-[11px] text-teal-100/80 mt-2 font-mono">Generated: {new Date().toLocaleString()}</p>
+                  </div>
+                  <div className="flex space-x-2 no-print self-end md:self-center">
+                    <button onClick={() => window.print()} className="px-4 py-2 bg-white text-teal-700 hover:bg-teal-50 text-xs font-bold rounded-lg shadow transition">
+                      Print Report
+                    </button>
+                    <button onClick={() => setReportData(null)} className="px-4 py-2 bg-teal-800/50 hover:bg-teal-800/70 text-teal-50 text-xs font-bold rounded-lg transition">
+                      Close
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-slate-100 dark:bg-slate-900/40 text-slate-500 border-b border-slate-200 dark:border-slate-700">
-                      <th className="p-3">Harness ID</th>
-                      <th className="p-3">Current Activity</th>
-                      <th className="p-3">Impact Alert</th>
-                      <th className="p-3">Location Coordinates</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reportData.length === 0 ? (
-                      <tr>
-                        <td colSpan={4} className="p-4 text-center text-slate-400">No active harness devices detected.</td>
+              <div className="p-6 space-y-6 text-slate-800 dark:text-slate-100">
+                {/* Aggregate Statistics Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-teal-50/30 dark:bg-teal-950/10 border border-teal-100 dark:border-teal-900/30 rounded-xl p-4 transition hover:shadow-sm">
+                    <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider">Data Rate</p>
+                    <p className="font-extrabold text-lg text-teal-600 dark:text-teal-400 mt-1">{Math.round(currentSpeed)} pkts/min</p>
+                  </div>
+                  <div className="bg-teal-50/30 dark:bg-teal-950/10 border border-teal-100 dark:border-teal-900/30 rounded-xl p-4 transition hover:shadow-sm">
+                    <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider">Harness Nodes</p>
+                    <p className="font-extrabold text-lg text-teal-600 dark:text-teal-400 mt-1">{reportData.length} active</p>
+                  </div>
+                  <div className="bg-teal-50/30 dark:bg-teal-950/10 border border-teal-100 dark:border-teal-900/30 rounded-xl p-4 transition hover:shadow-sm">
+                    <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider">Active Alerts</p>
+                    <p className="font-extrabold text-lg text-teal-600 dark:text-teal-400 mt-1">{alertsCount} triggered</p>
+                  </div>
+                </div>
+
+                {/* Database Table */}
+                <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-teal-700 text-white font-bold text-xs">
+                        <th className="p-3.5">Harness ID</th>
+                        <th className="p-3.5">Current Activity</th>
+                        <th className="p-3.5">Steps</th>
+                        <th className="p-3.5">Vitals (HR / Temp)</th>
+                        <th className="p-3.5">Battery</th>
+                        <th className="p-3.5">Impact Alert</th>
+                        <th className="p-3.5">Location Coordinates</th>
                       </tr>
-                    ) : (
-                      reportData.map((item) => (
-                        <tr key={item.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                          <td className="p-3 font-semibold">{item.id}</td>
-                          <td className="p-3">{item.activityType}</td>
-                          <td className={`p-3 font-bold ${item.impact === 'TRIGGERED' ? 'text-red-500' : 'text-slate-500 dark:text-slate-400'}`}>
-                            {item.impact}
-                          </td>
-                          <td className="p-3 text-slate-500 dark:text-slate-400">{item.coords}</td>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                      {reportData.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="p-5 text-center text-slate-400 bg-white dark:bg-slate-800">No active harness devices detected.</td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                      ) : (
+                        reportData.map((item) => {
+                          const batVal = parseInt(item.battery);
+                          const batteryColor = batVal > 50 
+                            ? 'bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400' 
+                            : batVal > 20 
+                              ? 'bg-orange-100 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400' 
+                              : 'bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-400';
+
+                          return (
+                            <tr key={item.id} className="odd:bg-white even:bg-teal-50/5 dark:odd:bg-slate-800 dark:even:bg-teal-950/5 hover:bg-teal-50/10 dark:hover:bg-teal-950/10 transition-colors">
+                              <td className="p-3.5 font-bold text-teal-800 dark:text-teal-300 font-mono">{item.id}</td>
+                              <td className="p-3.5">
+                                <span className="font-semibold text-slate-700 dark:text-slate-200">{item.activityType}</span>
+                                <span className="block text-[10px] text-slate-400 mt-0.5">{item.activeMinutes.toFixed(1)} mins active</span>
+                              </td>
+                              <td className="p-3.5 font-bold text-slate-700 dark:text-slate-200">{item.stepCount.toLocaleString()}</td>
+                              <td className="p-3.5">
+                                <span className="font-semibold text-slate-700 dark:text-slate-200">{item.heartRate !== 'N/A' ? `${item.heartRate} bpm` : 'N/A'}</span>
+                                <span className="block text-[10px] text-slate-400 mt-0.5 font-medium">{item.temperature}</span>
+                              </td>
+                              <td className="p-3.5">
+                                <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${batteryColor}`}>
+                                  {item.battery}
+                                </span>
+                              </td>
+                              <td className="p-3.5">
+                                {item.impact === 'TRIGGERED' ? (
+                                  <span className="px-2.5 py-1 bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-400 rounded-full font-extrabold text-[10px] animate-pulse">
+                                    IMPACT ({item.impactSeverity.toFixed(1)}/10)
+                                  </span>
+                                ) : (
+                                  <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 rounded-full font-bold text-[10px]">
+                                    NONE
+                                  </span>
+                                )}
+                              </td>
+                              <td className="p-3.5 text-slate-500 dark:text-slate-400 font-mono text-[10px] select-all">{item.coords}</td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Footer details visible only in print */}
+                <div className="text-center text-[10px] text-slate-400 dark:text-slate-500 border-t border-slate-100 dark:border-slate-700 pt-4 mt-6">
+                  <p>PetGuard Pro — System Administration Dashboard Dashboard Report Preview</p>
+                  <p className="mt-0.5">Confidential | Department of Computer Engineering | University of Peradeniya</p>
+                </div>
+
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
