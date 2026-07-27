@@ -5,7 +5,8 @@ import { auth, firestore } from './firebase';
 import DashboardTab from './components/DashboardTab';
 import UsersTab from './components/UsersTab';
 import SupportTab from './components/SupportTab';
-import { LayoutDashboard, Users, MessageSquare, LogOut, Sun, Moon, Lock, Mail, Key, ShieldAlert, Menu, X } from 'lucide-react';
+import StockTab from './components/StockTab';
+import { LayoutDashboard, Users, MessageSquare, LogOut, Sun, Moon, Lock, Mail, Key, ShieldAlert, Menu, X, Package } from 'lucide-react';
 
 export default function App() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -19,7 +20,7 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(false);
 
   // Navigation & Theme
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'support'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'support' | 'stock'>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem('theme') === 'dark' || 
@@ -271,6 +272,18 @@ export default function App() {
             </button>
 
             <button
+              onClick={() => { setActiveTab('stock'); setSidebarOpen(false); }}
+              className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition ${
+                activeTab === 'stock'
+                  ? 'bg-primary text-white'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-850/50 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Package className="w-4 h-4" />
+              <span>Stock Inventory</span>
+            </button>
+
+            <button
               onClick={() => { setActiveTab('support'); setSidebarOpen(false); }}
               className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition ${
                 activeTab === 'support'
@@ -311,6 +324,7 @@ export default function App() {
         {activeTab === 'dashboard' && <DashboardTab />}
         {activeTab === 'users' && <UsersTab />}
         {activeTab === 'support' && <SupportTab />}
+        {activeTab === 'stock' && <StockTab />}
       </main>
     </div>
   );
