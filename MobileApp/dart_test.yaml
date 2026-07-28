@@ -1,0 +1,8 @@
+# Configuration for Dart/Flutter test runner
+# Use github reporter to print clean flat lines without console rewriting glitches.
+reporter: github
+
+# Limit test concurrency to 1 so that tests execute one after another.
+# This prevents parallel output streams from overlapping and scrambling the PowerShell console.
+concurrency: 1
+
