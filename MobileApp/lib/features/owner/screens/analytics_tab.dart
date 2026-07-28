@@ -137,21 +137,19 @@ class _AnalyticsTabState extends State<AnalyticsTab> {
     final double stepProgress = (stepCount / 5000.0).clamp(0.0, 1.0);
 
     // Vitals Averages
-    int avgHeartRate = 0;
+    int avgRespiratoryRate = 0;
     double avgTemp = 0.0;
     if (vitals.isNotEmpty) {
-      int hrSum = 0;
+      int respSum = 0;
       double tSum = 0.0;
       for (final v in vitals) {
-        // Vitals has heart_rate inside database mapping
-        // We will default mock bounds if raw parameters are null
-        hrSum += 80 + (v.respiratoryRate * 2) % 40; // Standard heart rate ranges mock estimation from breathing rates
+        respSum += v.respiratoryRate;
         tSum += v.calibratedTemperature;
       }
-      avgHeartRate = hrSum ~/ vitals.length;
+      avgRespiratoryRate = respSum ~/ vitals.length;
       avgTemp = tSum / vitals.length;
     } else {
-      avgHeartRate = 96;
+      avgRespiratoryRate = 24;
       avgTemp = 38.6;
     }
 
@@ -236,7 +234,7 @@ class _AnalyticsTabState extends State<AnalyticsTab> {
                               walkPct: walkPct,
                               runPct: runPct,
                               steps: stepCount,
-                              avgHr: avgHeartRate,
+                              avgRespRate: avgRespiratoryRate,
                               avgTemp: avgTemp,
                               locations: locations,
                               vitals: vitals,
@@ -376,10 +374,10 @@ class _AnalyticsTabState extends State<AnalyticsTab> {
             children: [
               Expanded(
                 child: _buildAverageCard(
-                  title: 'Average Heart Rate',
-                  value: '$avgHeartRate BPM',
-                  icon: Icons.favorite_rounded,
-                  color: Colors.red,
+                  title: 'Average Resp. Rate',
+                  value: '$avgRespiratoryRate breaths/min',
+                  icon: Icons.air_rounded,
+                  color: Colors.blue,
                   isDark: isDark,
                 ),
               ),
@@ -585,7 +583,7 @@ class _AnalyticsTabState extends State<AnalyticsTab> {
     required double walkPct,
     required double runPct,
     required int steps,
-    required int avgHr,
+    required int avgRespRate,
     required double avgTemp,
     required List<LocationHistoryEntry> locations,
     required List<HealthVitals> vitals,
@@ -677,7 +675,7 @@ class _AnalyticsTabState extends State<AnalyticsTab> {
                   // Section 3: Health Summary
                   pw.Text('3. Average Health Telemetry', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.teal900)),
                   pw.SizedBox(height: 8),
-                  pw.Bullet(text: 'Average Heart Rate: $avgHr BPM (Normal vitals threshold).'),
+                  pw.Bullet(text: 'Average Respiratory Rate: $avgRespRate breaths/min (Normal vitals threshold).'),
                   pw.Bullet(text: 'Average Body Temperature: ${avgTemp.toStringAsFixed(1)} °C.'),
                   pw.SizedBox(height: 24),
 

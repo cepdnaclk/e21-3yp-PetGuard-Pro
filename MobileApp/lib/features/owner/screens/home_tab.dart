@@ -450,7 +450,7 @@ class _StatusBannerState extends State<_StatusBanner> {
       isOnline = data != null;
     }
     int batteryPercent = 100;
-    int heartRate = 0;
+    int respiratoryRate = 0;
     double temp = 0.0;
     int steps = 0;
     String actType = 'RESTING';
@@ -463,7 +463,7 @@ class _StatusBannerState extends State<_StatusBanner> {
       batteryPercent = (batteryMap?['percentage'] ?? 100) as int;
 
       final healthMap = data['health'] as Map?;
-      heartRate = (healthMap?['heart_rate'] ?? 0) as int;
+      respiratoryRate = (healthMap?['respiratoryRate'] ?? 0) as int;
       temp = (healthMap?['temperature'] ?? 0.0) as double;
 
       final activityMap = data['activity'] as Map?;
@@ -595,11 +595,11 @@ class _StatusBannerState extends State<_StatusBanner> {
             Expanded(
               child: _buildMetricCard(
                 context: context,
-                icon: const _PulsatingHeartIcon(),
-                title: 'Heart Rate',
-                value: heartRate > 0 ? '$heartRate BPM' : '-- BPM',
-                color: Colors.red,
-                subtitle: heartRate > 120 ? 'Elevated pulse' : 'Normal vital bounds',
+                icon: const Icon(Icons.air_rounded, color: Colors.blue, size: 20),
+                title: 'Respiratory Rate',
+                value: respiratoryRate > 0 ? '$respiratoryRate br/min' : '-- br/min',
+                color: Colors.blue,
+                subtitle: respiratoryRate > 35 ? 'Elevated breathing' : 'Normal range',
                 isDark: isDark,
               ),
             ),
@@ -914,49 +914,6 @@ class _StatusBannerState extends State<_StatusBanner> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _PulsatingHeartIcon extends StatefulWidget {
-  const _PulsatingHeartIcon();
-
-  @override
-  State<_PulsatingHeartIcon> createState() => _PulsatingHeartIconState();
-}
-
-class _PulsatingHeartIconState extends State<_PulsatingHeartIcon>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _heartController;
-  late final Animation<double> _heartAnim;
-
-  @override
-  void initState() {
-    super.initState();
-    _heartController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    )..repeat(reverse: true);
-    _heartAnim = Tween<double>(begin: 1.0, end: 1.25).animate(
-      CurvedAnimation(parent: _heartController, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _heartController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ScaleTransition(
-      scale: _heartAnim,
-      child: const Icon(
-        Icons.favorite_rounded,
-        color: Colors.red,
-        size: 20,
       ),
     );
   }
