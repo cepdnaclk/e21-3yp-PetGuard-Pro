@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,6 +29,28 @@ class _LocationTrackingScreenState extends ConsumerState<LocationTrackingScreen>
   late AnimationController _pulseCtrl;
   late Animation<double> _pulseAnim;
 
+  // Walk simulator variables
+  int _simulatedIndex = 0;
+  Timer? _simulationTimer;
+  PetLocation? _simulatedLocation;
+
+  // The 13 GPS coordinates provided by the user
+  static const List<LatLng> _simulationRoute = [
+    LatLng(7.263486, 80.569940),
+    LatLng(7.263578, 80.569863),
+    LatLng(7.263730, 80.569820),
+    LatLng(7.263845, 80.569856),
+    LatLng(7.263961, 80.569914),
+    LatLng(7.264069, 80.569987),
+    LatLng(7.264271, 80.570123),
+    LatLng(7.264417, 80.570221),
+    LatLng(7.264490, 80.570266),
+    LatLng(7.264567, 80.570307),
+    LatLng(7.264648, 80.570364),
+    LatLng(7.264724, 80.570413),
+    LatLng(7.264826, 80.570470),
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -38,13 +61,59 @@ class _LocationTrackingScreenState extends ConsumerState<LocationTrackingScreen>
     _pulseAnim = Tween<double>(begin: 0.5, end: 1.0).animate(
       CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
     );
+
+    // Start automatic playback of GPS walk
+    _startSimulation();
   }
 
   @override
   void dispose() {
+    _simulationTimer?.cancel();
     _pulseCtrl.dispose();
     _mapController?.dispose();
     super.dispose();
+  }
+
+  void _startSimulation() {
+    _updateSimulatedLocation();
+    
+    // Tick every 3 seconds to move to the next coordinate point
+    _simulationTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (_simulatedIndex < _simulationRoute.length - 1) {
+        setState(() {
+          _simulatedIndex++;
+          _updateSimulatedLocation();
+        });
+      } else {
+        // Restart the simulation route for a continuous loop demonstration
+        setState(() {
+          _simulatedIndex = 0;
+          _breadcrumbs.clear();
+          _updateSimulatedLocation();
+        });
+      }
+    });
+  }
+
+  void _updateSimulatedLocation() {
+    final coord = _simulationRoute[_simulatedIndex];
+    // Calculate heading / bearing
+    double? heading;
+    if (_simulatedIndex > 0) {
+      final prev = _simulationRoute[_simulatedIndex - 1];
+      final dLat = coord.latitude - prev.latitude;
+      final dLng = coord.longitude - prev.longitude;
+      final angle = math.atan2(dLng, dLat) * 180 / math.pi;
+      heading = (angle + 360) % 360;
+    }
+
+    _simulatedLocation = PetLocation(
+      latitude: coord.latitude,
+      longitude: coord.longitude,
+      accuracy: 5.0,
+      timestamp: DateTime.now(),
+      heading: heading,
+    );
   }
 
   @override
@@ -54,6 +123,8 @@ class _LocationTrackingScreenState extends ConsumerState<LocationTrackingScreen>
 
     ref.watch(geofenceMonitorProvider);
     ref.watch(locationHistorySaverProvider);
+
+    final activeLocation = _simulatedLocation;
 
     return Scaffold(
       appBar: AppBar(
@@ -85,21 +156,25 @@ class _LocationTrackingScreenState extends ConsumerState<LocationTrackingScreen>
           ),
         ],
       ),
-      body: locationAsync.when(
-        data: (location) {
-          _updateBreadcrumbs(location);
-          if (_followPet && _mapController != null) {
-            _mapController!.animateCamera(
-              CameraUpdate.newLatLng(
-                LatLng(location.latitude, location.longitude),
-              ),
-            );
-          }
-          return _buildMapView(context, location, geofenceState);
-        },
-        loading: () => _buildLoading(),
-        error: (err, _) => _buildError(err),
-      ),
+      body: activeLocation == null
+          ? locationAsync.when(
+              data: (_) => _buildLoading(),
+              loading: () => _buildLoading(),
+              error: (err, _) => _buildError(err),
+            )
+          : Builder(
+              builder: (context) {
+                _updateBreadcrumbs(activeLocation);
+                if (_followPet && _mapController != null) {
+                  _mapController!.animateCamera(
+                    CameraUpdate.newLatLng(
+                      LatLng(activeLocation.latitude, activeLocation.longitude),
+                    ),
+                  );
+                }
+                return _buildMapView(context, activeLocation, geofenceState);
+              },
+            ),
     );
   }
 
