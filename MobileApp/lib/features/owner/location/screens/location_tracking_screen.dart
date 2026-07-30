@@ -34,21 +34,17 @@ class _LocationTrackingScreenState extends ConsumerState<LocationTrackingScreen>
   Timer? _simulationTimer;
   PetLocation? _simulatedLocation;
 
-  // The 13 GPS coordinates provided by the user
+  // The 9 GPS coordinates provided by the user
   static const List<LatLng> _simulationRoute = [
-    LatLng(7.263486, 80.569940),
-    LatLng(7.263578, 80.569863),
-    LatLng(7.263730, 80.569820),
-    LatLng(7.263845, 80.569856),
-    LatLng(7.263961, 80.569914),
-    LatLng(7.264069, 80.569987),
-    LatLng(7.264271, 80.570123),
-    LatLng(7.264417, 80.570221),
-    LatLng(7.264490, 80.570266),
-    LatLng(7.264567, 80.570307),
-    LatLng(7.264648, 80.570364),
-    LatLng(7.264724, 80.570413),
-    LatLng(7.264826, 80.570470),
+    LatLng(7.263951, 80.569917),
+    LatLng(7.263978, 80.569940),
+    LatLng(7.264027, 80.569971),
+    LatLng(7.264056, 80.569986),
+    LatLng(7.264065, 80.569969),
+    LatLng(7.264081, 80.569983),
+    LatLng(7.264103, 80.569993),
+    LatLng(7.264131, 80.570013),
+    LatLng(7.264161, 80.570028),
   ];
 
   @override
@@ -77,8 +73,8 @@ class _LocationTrackingScreenState extends ConsumerState<LocationTrackingScreen>
   void _startSimulation() {
     _updateSimulatedLocation();
     
-    // Tick every 3 seconds to move to the next coordinate point
-    _simulationTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+    // Tick every 5 seconds to move to the next coordinate point
+    _simulationTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (_simulatedIndex < _simulationRoute.length - 1) {
         setState(() {
           _simulatedIndex++;
