@@ -150,17 +150,33 @@ class _LocationTrackingScreenState extends ConsumerState<LocationTrackingScreen>
             geofence: fence,
           );
 
+      // Always render the zone in the color the user picked for it.
+      // Status (inactive / outside-schedule / breached / safe) is conveyed
+      // through opacity and stroke width instead of swapping the hue —
+      // previously this always rendered grey/green/red regardless of the
+      // geofence's saved colorValue, which is why custom colors never
+      // showed up on the live map.
+      final baseColor = Color(GeofenceColors.sanitize(fence.colorValue));
+
       Color fillColor;
       Color strokeColor;
+      int strokeWidth;
       if (!scheduleActive) {
-        fillColor = Colors.grey.withValues(alpha: 0.08);
-        strokeColor = Colors.grey.withValues(alpha: 0.4);
+        // Inactive (disabled or outside its schedule window): faded out.
+        fillColor = baseColor.withValues(alpha: 0.05);
+        strokeColor = baseColor.withValues(alpha: 0.35);
+        strokeWidth = 1;
       } else if (isInside) {
-        fillColor = Colors.green.withValues(alpha: 0.15);
-        strokeColor = Colors.green;
+        // Pet is safely inside: normal zone color.
+        fillColor = baseColor.withValues(alpha: 0.18);
+        strokeColor = baseColor;
+        strokeWidth = 2;
       } else {
-        fillColor = Colors.red.withValues(alpha: 0.1);
-        strokeColor = Colors.red;
+        // Active but breached: same color, bolder outline so it still
+        // reads as "alert" without losing the zone's identity color.
+        fillColor = baseColor.withValues(alpha: 0.22);
+        strokeColor = baseColor;
+        strokeWidth = 4;
       }
 
       if (fence.zoneType == GeofenceType.polygon &&
@@ -170,7 +186,7 @@ class _LocationTrackingScreenState extends ConsumerState<LocationTrackingScreen>
           points: fence.polygonPoints,
           fillColor: fillColor,
           strokeColor: strokeColor,
-          strokeWidth: 2,
+          strokeWidth: strokeWidth,
         ));
       } else {
         circles.add(Circle(
@@ -179,7 +195,7 @@ class _LocationTrackingScreenState extends ConsumerState<LocationTrackingScreen>
           radius: fence.radiusInMeters,
           fillColor: fillColor,
           strokeColor: strokeColor,
-          strokeWidth: 2,
+          strokeWidth: strokeWidth,
         ));
       }
     }
@@ -424,14 +440,18 @@ class _LocationTrackingScreenState extends ConsumerState<LocationTrackingScreen>
                 child: ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  leading: Icon(
-                    scheduleActive
-                        ? (isInside ? Icons.check_circle : Icons.warning)
-                        : Icons.block,
-                    color: scheduleActive
-                        ? (isInside ? Colors.green : Colors.red)
+                  leading: CircleAvatar(
+                    radius: 14,
+                    backgroundColor: scheduleActive
+                        ? Color(GeofenceColors.sanitize(fence.colorValue))
                         : Colors.grey,
-                    size: 20,
+                    child: Icon(
+                      scheduleActive
+                          ? (isInside ? Icons.check_circle : Icons.warning)
+                          : Icons.block,
+                      color: Colors.white,
+                      size: 16,
+                    ),
                   ),
                   title: Text(fence.name,
                       style: const TextStyle(fontWeight: FontWeight.w500)),

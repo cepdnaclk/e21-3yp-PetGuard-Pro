@@ -12,6 +12,9 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart' as share_plus;
 import 'package:cross_file/cross_file.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import '../models/location_history_entry.dart';
 import '../providers/location_provider.dart';
 import '../services/location_history_service.dart';
@@ -1051,130 +1054,6 @@ class _LocationHistoryScreenState extends ConsumerState<LocationHistoryScreen>
     return '${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}';
   }
 
-  List<LocationHistoryEntry> _sampleWaypoints(
-      List<LocationHistoryEntry> history) {
-    if (history.isEmpty) return [];
-    if (history.length <= 4) return history;
-
-    final waypoints = <LocationHistoryEntry>[history.first];
-    DateTime lastAdded = history.first.timestamp;
-
-    for (int i = 1; i < history.length - 1; i++) {
-      final e = history[i];
-      final minsSinceLast = e.timestamp.difference(lastAdded).inMinutes.abs();
-      final dist = _haversineRaw(waypoints.last.latitude,
-          waypoints.last.longitude, e.latitude, e.longitude);
-      if (minsSinceLast >= 15 || dist >= 500) {
-        waypoints.add(e);
-        lastAdded = e.timestamp;
-      }
-    }
-    waypoints.add(history.last);
-    return waypoints;
-  }
-
-  Future<String> _buildReport(
-      List<LocationHistoryEntry> history, List<Geofence> zones) async {
-    final sb = StringBuffer();
-    final now = DateTime.now();
-    final totalDist = LocationHistoryService().calculateTotalDistance(history);
-    final avgSpd = _avgSpeed(history);
-    final activeTime = history.length > 1
-        ? history.first.timestamp.difference(history.last.timestamp).abs()
-        : Duration.zero;
-
-    sb.writeln('╔══════════════════════════════════════════════════╗');
-    sb.writeln('║         PetGuard Pro — Location History Report   ║');
-    sb.writeln('╚══════════════════════════════════════════════════╝');
-    sb.writeln();
-    sb.writeln('Generated : ${_fmtDateTime(now)}');
-    sb.writeln('Period    : ${_fmtDateTime(history.last.timestamp)}');
-    sb.writeln('          → ${_fmtDateTime(history.first.timestamp)}');
-    sb.writeln('GPS points: ${history.length}');
-    sb.writeln();
-    sb.writeln('── SUMMARY ────────────────────────────────────────');
-    sb.writeln('Total distance : ${_fmtDist(totalDist)}');
-    sb.writeln('Active time    : ${_fmtDuration(activeTime)}');
-    sb.writeln('Average speed  : ${avgSpd.toStringAsFixed(2)} m/s');
-    sb.writeln('Longest rest   : ${_fmtDuration(_longestStationary(history))}');
-    sb.writeln('Zone events    : ${_countZoneEvents(history, zones)}');
-    sb.writeln();
-
-    if (zones.isNotEmpty) {
-      final dwell = _calcZoneDwell(history, zones);
-      if (dwell.isNotEmpty) {
-        sb.writeln('── TIME IN ZONES ───────────────────────────────────');
-        dwell.forEach((zoneName, minutes) {
-          final pct = (minutes / dwell.values.fold(0.0, (a, b) => a + b) * 100)
-              .toStringAsFixed(1);
-          sb.writeln(
-              '  ${zoneName.padRight(20)} ${_fmtDuration(Duration(minutes: minutes.toInt()))} ($pct%)');
-        });
-        sb.writeln();
-      }
-    }
-
-    sb.writeln('── JOURNEY LOG (key waypoints) ─────────────────────');
-    final waypoints = _sampleWaypoints(history);
-
-    for (int i = 0; i < waypoints.length; i++) {
-      final e = waypoints[i];
-      final place = await _reverseGeocode(e.latitude, e.longitude);
-      final svc = ref.read(locationServiceProvider);
-      final activeZones = zones
-          .where((z) =>
-              z.isActive &&
-              svc.isWithinGeofence(
-                currentLat: e.latitude,
-                currentLng: e.longitude,
-                centerLat: z.centerLatitude,
-                centerLng: z.centerLongitude,
-                radiusInMeters: z.radiusInMeters,
-                geofence: z,
-              ))
-          .map((z) => z.name)
-          .toList();
-      final zoneStr =
-          activeZones.isNotEmpty ? ' [inside: ${activeZones.join(', ')}]' : '';
-      String movStr = '';
-      if (i > 0) {
-        final prev = waypoints[i - 1];
-        final d = _haversineRaw(
-            prev.latitude, prev.longitude, e.latitude, e.longitude);
-        final mins = e.timestamp.difference(prev.timestamp).inMinutes.abs();
-        movStr = '  → moved ${_fmtDist(d)} in ${mins}min\n';
-      }
-      sb.write(movStr);
-      sb.writeln('${i + 1}. ${_fmtTimeOnly(e.timestamp)}  $place$zoneStr');
-      if (e.accuracy != null) {
-        sb.writeln('      GPS accuracy: ±${e.accuracy!.toStringAsFixed(1)}m');
-      }
-    }
-
-    sb.writeln();
-    sb.writeln('── RAW DATA ────────────────────────────────────────');
-    sb.writeln('Time            Latitude      Longitude     Accuracy  Place');
-    sb.writeln('─' * 75);
-
-    final step = math.max(1, history.length ~/ 50);
-    for (int i = 0; i < history.length; i += step) {
-      final e = history[i];
-      final place = await _reverseGeocode(e.latitude, e.longitude);
-      final acc =
-          e.accuracy != null ? '±${e.accuracy!.toStringAsFixed(0)}m' : '  N/A ';
-      sb.writeln(_fmtTimeOnly(e.timestamp).padRight(16) +
-          e.latitude.toStringAsFixed(5).padRight(14) +
-          e.longitude.toStringAsFixed(5).padRight(14) +
-          acc.padRight(10) +
-          place);
-    }
-
-    sb.writeln();
-    sb.writeln('── END OF REPORT ───────────────────────────────────');
-    sb.writeln('Generated by PetGuard Pro');
-    return sb.toString();
-  }
-
   Future<String> _buildCsv(List<LocationHistoryEntry> history) async {
     final sb = StringBuffer();
     sb.writeln('timestamp,time,latitude,longitude,accuracy_m,place_name,zone');
@@ -1287,26 +1166,7 @@ class _LocationHistoryScreenState extends ConsumerState<LocationHistoryScreen>
                 ),
                 const SizedBox(height: 20),
 
-                // Option 1 — Full Report (.txt)
-                _exportOption(
-                  icon: Icons.description_outlined,
-                  color: const Color(0xFF00897B),
-                  title: 'Full Report (.txt)',
-                  subtitle: 'Human-readable journey log',
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _generateAndShare(
-                      context: context,
-                      future: _buildReport(history, geofenceState.geofences),
-                      filename: 'petguard_report_$label.txt',
-                      mime: 'text/plain',
-                      successMsg: 'Report ready',
-                    );
-                  },
-                ),
-                const SizedBox(height: 10),
-
-                // Option 2 — Spreadsheet CSV
+                // Option 1 — Spreadsheet CSV
                 _exportOption(
                   icon: Icons.table_chart_outlined,
                   color: Colors.green.shade700,
@@ -1325,20 +1185,21 @@ class _LocationHistoryScreenState extends ConsumerState<LocationHistoryScreen>
                 ),
                 const SizedBox(height: 10),
 
-                // Option 3 — Copy to clipboard
+                // Option 2 — PDF Report
                 _exportOption(
-                  icon: Icons.copy_outlined,
-                  color: Colors.blue.shade700,
-                  title: 'Copy Summary to Clipboard',
-                  subtitle: 'Quick stats and journey logs',
+                  icon: Icons.picture_as_pdf_outlined,
+                  color: const Color(0xFFD32F2F),
+                  title: 'Export as PDF Report',
+                  subtitle:
+                      'Professional report with place names, zone dwell table & pie chart',
                   onTap: () {
                     Navigator.pop(ctx);
-                    _showLoadingSnack(context, 'Building Summary…');
-                    _buildReport(history, geofenceState.geofences)
-                        .then((report) {
-                      Clipboard.setData(ClipboardData(text: report));
-                      _snackDone(context, 'Summary Copied to Clipboard');
-                    });
+                    _generatePdf(
+                      context: context,
+                      history: history,
+                      zones: geofenceState.geofences,
+                      filename: 'petguard_report_$label.pdf',
+                    );
                   },
                 ),
               ],
@@ -1359,6 +1220,7 @@ class _LocationHistoryScreenState extends ConsumerState<LocationHistoryScreen>
     _showLoadingSnack(context, 'Building Report with Place Names…');
     try {
       final content = await future;
+      if (!mounted) return;
       if (kIsWeb) {
         Clipboard.setData(ClipboardData(text: content));
         _snackDone(context, '$successMsg — Copied to Clipboard (web)');
@@ -1366,13 +1228,17 @@ class _LocationHistoryScreenState extends ConsumerState<LocationHistoryScreen>
         final dir = await getTemporaryDirectory();
         final path = '${dir.path}/$filename';
         await _writeTempFile(path, content);
-        await share_plus.Share.shareXFiles(
-          [XFile(path)],
-          subject: 'PetGuard Pro — Location Report',
+        await share_plus.SharePlus.instance.share(
+          share_plus.ShareParams(
+            files: [XFile(path)],
+            subject: 'PetGuard Pro — Location Report',
+          ),
         );
+        if (!mounted) return;
         _snackDone(context, successMsg);
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Export failed: $e'),
@@ -1436,6 +1302,156 @@ class _LocationHistoryScreenState extends ConsumerState<LocationHistoryScreen>
     final file = File(path);
     await file.writeAsString(content, flush: true);
     return path;
+  }
+
+  // ── PDF export ────────────────────────────────────────────────────────────
+
+  /// Smart waypoint sampling for PDF — every 15 min or 500 m movement,
+  /// but adaptively loosened so the TOTAL waypoint count (and therefore
+  /// page count) stays bounded regardless of how large the date range is.
+  List<LocationHistoryEntry> _sampleWaypointsForPdf(
+      List<LocationHistoryEntry> history,
+      {int maxWaypoints = 250}) {
+    if (history.isEmpty) return [];
+    if (history.length <= 4) return history;
+
+    double minMinutes = 15;
+    double minMeters = 500;
+
+    var result = _sampleWithThresholds(history, minMinutes, minMeters);
+
+    // Keep loosening the thresholds until the sampled set fits our budget.
+    // This guarantees the PDF never tries to render an unbounded number of
+    // rows/pages, which is what caused TooManyPagesException on large
+    // date ranges (previously this used fixed 15min/500m thresholds no
+    // matter how many days or how dense the GPS fixes were).
+    int guard = 0;
+    while (result.length > maxWaypoints && guard < 25) {
+      minMinutes *= 1.5;
+      minMeters *= 1.5;
+      result = _sampleWithThresholds(history, minMinutes, minMeters);
+      guard++;
+    }
+    return result;
+  }
+
+  List<LocationHistoryEntry> _sampleWithThresholds(
+      List<LocationHistoryEntry> history, double minMinutes, double minMeters) {
+    final result = <LocationHistoryEntry>[history.first];
+    DateTime lastAdded = history.first.timestamp;
+    for (int i = 1; i < history.length - 1; i++) {
+      final e = history[i];
+      final mins = e.timestamp.difference(lastAdded).inMinutes.abs();
+      final dist = _haversineRaw(
+          result.last.latitude, result.last.longitude, e.latitude, e.longitude);
+      if (mins >= minMinutes || dist >= minMeters) {
+        result.add(e);
+        lastAdded = e.timestamp;
+      }
+    }
+    result.add(history.last);
+    return result;
+  }
+
+  /// Geocodes sampled waypoints and returns structured data for the PDF builder.
+  Future<List<_WaypointData>> _buildWaypointData(
+      List<LocationHistoryEntry> history, List<Geofence> zones) async {
+    final sampled = _sampleWaypointsForPdf(history);
+    final svc = ref.read(locationServiceProvider);
+    final result = <_WaypointData>[];
+    for (int i = 0; i < sampled.length; i++) {
+      final e = sampled[i];
+      final place = await _reverseGeocode(e.latitude, e.longitude);
+      final activeZone = zones
+          .where((z) =>
+              z.isActive &&
+              svc.isWithinGeofence(
+                currentLat: e.latitude,
+                currentLng: e.longitude,
+                centerLat: z.centerLatitude,
+                centerLng: z.centerLongitude,
+                radiusInMeters: z.radiusInMeters,
+                geofence: z,
+              ))
+          .map((z) => z.name)
+          .firstOrNull;
+      final dist = i == 0
+          ? null
+          : _haversineRaw(sampled[i - 1].latitude, sampled[i - 1].longitude,
+              e.latitude, e.longitude);
+      result.add(_WaypointData(
+        dateLabel: _fmtDateLabel(e.timestamp),
+        timeLabel: _fmtTimeOnly(e.timestamp),
+        placeName: place,
+        coords:
+            '${e.latitude.toStringAsFixed(5)}, ${e.longitude.toStringAsFixed(5)}',
+        insideZone: activeZone,
+        distFromPrev: dist,
+      ));
+    }
+    return result;
+  }
+
+  /// Assembles all data and calls [_PdfReportBuilder].
+  Future<Uint8List> _buildPdfBytes(
+      List<LocationHistoryEntry> history, List<Geofence> zones) async {
+    final totalDist = LocationHistoryService().calculateTotalDistance(history);
+    final activeTime = history.length > 1
+        ? history.first.timestamp.difference(history.last.timestamp).abs()
+        : Duration.zero;
+    final waypoints = await _buildWaypointData(history, zones);
+    return _PdfReportBuilder(
+      history: history,
+      zones: zones,
+      zoneDwell: _calcZoneDwell(history, zones),
+      waypoints: waypoints,
+      totalDistM: totalDist,
+      avgSpeedMs: _avgSpeed(history),
+      activeTime: activeTime,
+      longestStationary: _longestStationary(history),
+      zoneEventCount: _countZoneEvents(history, zones),
+      generatedAt: DateTime.now(),
+    ).build();
+  }
+
+  Future<void> _generatePdf({
+    required BuildContext context,
+    required List<LocationHistoryEntry> history,
+    required List<Geofence> zones,
+    required String filename,
+  }) async {
+    _showLoadingSnack(context, 'Building PDF report…');
+    try {
+      final bytes = await _buildPdfBytes(history, zones);
+      if (!mounted) return;
+      if (kIsWeb) {
+        await Printing.sharePdf(bytes: bytes, filename: filename);
+      } else {
+        final dir = await getTemporaryDirectory();
+        final path = '${dir.path}/$filename';
+        await File(path).writeAsBytes(bytes, flush: true);
+        await share_plus.SharePlus.instance.share(
+          share_plus.ShareParams(
+            files: [XFile(path, mimeType: 'application/pdf')],
+            subject: 'PetGuard Pro — Location History Report',
+          ),
+        );
+      }
+      if (!mounted) return;
+      _snackDone(context, 'PDF ready');
+    } catch (e, st) {
+      // Print the real error + stack trace to the console — previously this
+      // only reached the UI via SnackBar's Text('Export failed: $e'), which
+      // never appears in logcat, so failures were effectively invisible
+      // outside the app itself.
+      debugPrint('PDF export failed: $e');
+      debugPrintStack(stackTrace: st, label: 'PDF export stack trace');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Export failed: $e'),
+        backgroundColor: Colors.red,
+      ));
+    }
   }
 
   void _showLoadingSnack(BuildContext context, String msg) {
@@ -1701,4 +1717,695 @@ class _TimelineEvent {
     required this.time,
     required this.color,
   });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Waypoint data model used by PDF builder
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _WaypointData {
+  final String dateLabel;
+  final String timeLabel;
+  final String placeName;
+  final String coords;
+  final String? insideZone;
+  final double? distFromPrev;
+  const _WaypointData({
+    required this.dateLabel,
+    required this.timeLabel,
+    required this.placeName,
+    required this.coords,
+    this.insideZone,
+    this.distFromPrev,
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Pie chart helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _PieSlice {
+  final double fraction;
+  final PdfColor color;
+  final String label;
+  final double pct;
+  const _PieSlice({
+    required this.fraction,
+    required this.color,
+    required this.label,
+    required this.pct,
+  });
+}
+
+/// Pure pw.Widget doughnut chart — no private PDF canvas APIs needed.
+pw.Widget _buildPieWidget(List<_PieSlice> slices, {double size = 200}) {
+  if (slices.isEmpty) return pw.SizedBox(width: size, height: size);
+  const steps = 60;
+  final r = size / 2;
+  final inner = r * 0.40;
+
+  // Build the entire pie in a single CustomPaint — avoids pw.Positioned and
+  // pw.PdfPoint which are not in the public pdf package API.
+  // PdfPoint comes from package:pdf/pdf.dart (already imported).
+  return pw.SizedBox(
+    width: size,
+    height: size,
+    child: pw.CustomPaint(
+      size: PdfPoint(size, size),
+      painter: (canvas, _) {
+        double startAngle = -math.pi / 2;
+
+        for (final slice in slices) {
+          final sweep = slice.fraction * 2 * math.pi;
+          final endAngle = startAngle + sweep;
+
+          // Build polygon: centre → arc → centre
+          canvas.setFillColor(slice.color);
+          canvas.moveTo(r, r);
+          for (int i = 0; i <= steps; i++) {
+            final a = startAngle + sweep * i / steps;
+            canvas.lineTo(r + r * math.cos(a), r + r * math.sin(a));
+          }
+          canvas.lineTo(r, r);
+          canvas.fillPath();
+
+          // White divider line
+          canvas.setStrokeColor(PdfColors.white);
+          canvas.setLineWidth(1.5);
+          canvas.moveTo(r, r);
+          canvas.lineTo(
+              r + r * math.cos(startAngle), r + r * math.sin(startAngle));
+          canvas.strokePath();
+
+          // percentage shown in legend beside the chart
+
+          startAngle = endAngle;
+        }
+
+        // White doughnut hole
+        canvas.setFillColor(PdfColors.white);
+        canvas.moveTo(r + inner, r);
+        for (int i = 1; i <= steps; i++) {
+          final a = 2 * math.pi * i / steps;
+          canvas.lineTo(r + inner * math.cos(a), r + inner * math.sin(a));
+        }
+        canvas.fillPath();
+      },
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PDF Report Builder
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _PdfReportBuilder {
+  final List<LocationHistoryEntry> history;
+  final List<Geofence> zones;
+  final Map<String, double> zoneDwell;
+  final List<_WaypointData> waypoints;
+  final double totalDistM;
+  final double avgSpeedMs;
+  final Duration activeTime;
+  final Duration longestStationary;
+  final int zoneEventCount;
+  final DateTime generatedAt;
+
+  _PdfReportBuilder({
+    required this.history,
+    required this.zones,
+    required this.zoneDwell,
+    required this.waypoints,
+    required this.totalDistM,
+    required this.avgSpeedMs,
+    required this.activeTime,
+    required this.longestStationary,
+    required this.zoneEventCount,
+    required this.generatedAt,
+  });
+
+  static const PdfColor _teal = PdfColor.fromInt(0xFF00897B);
+  static const PdfColor _tealLight = PdfColor.fromInt(0xFFE0F2F1);
+  static const PdfColor _dark = PdfColor.fromInt(0xFF212121);
+  static const PdfColor _grey = PdfColor.fromInt(0xFF757575);
+  static const PdfColor _greyLight = PdfColor.fromInt(0xFFF5F5F5);
+  static const PdfColor _white = PdfColor.fromInt(0xFFFFFFFF);
+  static const PdfColor _green = PdfColor.fromInt(0xFF2E7D32);
+
+  Future<Uint8List> build() async {
+    final doc = pw.Document();
+    final ttf = pw.Font.helvetica();
+    final ttfBold = pw.Font.helveticaBold();
+    final ttfObl = pw.Font.helveticaOblique();
+    final theme =
+        pw.ThemeData.withFont(base: ttf, bold: ttfBold, italic: ttfObl);
+
+    final byDate = <String, List<_WaypointData>>{};
+    for (final wp in waypoints) {
+      byDate.putIfAbsent(wp.dateLabel, () => []).add(wp);
+    }
+
+    // Page 1 — cover + summary + zone dwell table
+    doc.addPage(pw.MultiPage(
+      maxPages: 500,
+      theme: theme,
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(40),
+      header: (ctx) => _header(ctx, ttfBold),
+      footer: (ctx) => _footer(ctx, ttf),
+      build: (ctx) => [
+        _cover(ttf, ttfBold),
+        pw.SizedBox(height: 20),
+        _summary(ttf, ttfBold),
+        pw.SizedBox(height: 20),
+        if (zoneDwell.isNotEmpty) ...[
+          _zoneDwellTable(ttf, ttfBold),
+          pw.SizedBox(height: 20),
+        ],
+      ],
+    ));
+
+    // Page 2+ — daily journey log
+    doc.addPage(pw.MultiPage(
+      maxPages: 500,
+      theme: theme,
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(40),
+      header: (ctx) => _header(ctx, ttfBold),
+      footer: (ctx) => _footer(ctx, ttf),
+      build: (ctx) => _journeyLog(byDate, ttf, ttfBold),
+    ));
+
+    // Last page — pie chart (only if zone data exists)
+    if (zoneDwell.isNotEmpty) {
+      doc.addPage(pw.Page(
+        theme: theme,
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(40),
+        build: (ctx) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            _header(ctx, ttfBold),
+            pw.SizedBox(height: 24),
+            _pieSection(ttf, ttfBold),
+            pw.Spacer(),
+            _footer(ctx, ttf),
+          ],
+        ),
+      ));
+    }
+
+    return doc.save();
+  }
+
+  // ── Header / Footer ────────────────────────────────────────────────────────
+
+  pw.Widget _header(pw.Context ctx, pw.Font bold) => pw.Column(children: [
+        pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+          pw.Text('PetGuard Pro',
+              style: pw.TextStyle(font: bold, fontSize: 11, color: _teal)),
+          pw.Text('Location History Report',
+              style: pw.TextStyle(fontSize: 10, color: _grey)),
+        ]),
+        pw.SizedBox(height: 4),
+        pw.Divider(color: _teal, thickness: 1.5),
+        pw.SizedBox(height: 8),
+      ]);
+
+  pw.Widget _footer(pw.Context ctx, pw.Font base) => pw.Column(children: [
+        pw.Divider(color: _greyLight),
+        pw.SizedBox(height: 4),
+        pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+          pw.Text('Generated: ${_dt(generatedAt)}',
+              style: pw.TextStyle(font: base, fontSize: 8, color: _grey)),
+          pw.Text('Page ${ctx.pageNumber} of ${ctx.pagesCount}',
+              style: pw.TextStyle(font: base, fontSize: 8, color: _grey)),
+        ]),
+      ]);
+
+  // ── Cover ──────────────────────────────────────────────────────────────────
+
+  pw.Widget _cover(pw.Font base, pw.Font bold) {
+    final start = history.isNotEmpty ? history.last.timestamp : generatedAt;
+    final end = history.isNotEmpty ? history.first.timestamp : generatedAt;
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(24),
+      decoration: pw.BoxDecoration(
+          color: _teal,
+          borderRadius: const pw.BorderRadius.all(pw.Radius.circular(12))),
+      child:
+          pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+        pw.Text('Location History Report',
+            style: pw.TextStyle(font: bold, fontSize: 22, color: _white)),
+        pw.SizedBox(height: 8),
+        pw.Text('${_dateOnly(start)} — ${_dateOnly(end)}',
+            style: pw.TextStyle(font: base, fontSize: 13, color: _tealLight)),
+        pw.SizedBox(height: 4),
+        pw.Text('Generated on ${_dt(generatedAt)}',
+            style: pw.TextStyle(font: base, fontSize: 10, color: _tealLight)),
+        pw.SizedBox(height: 16),
+        pw.Row(children: [
+          _coverStat('${history.length}', 'GPS points', bold, base),
+          pw.SizedBox(width: 32),
+          _coverStat(_dist(totalDistM), 'Total distance', bold, base),
+          pw.SizedBox(width: 32),
+          _coverStat('${zones.length}', 'Safe zones', bold, base),
+        ]),
+      ]),
+    );
+  }
+
+  pw.Widget _coverStat(
+          String value, String label, pw.Font bold, pw.Font base) =>
+      pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+        pw.Text(value,
+            style: pw.TextStyle(font: bold, fontSize: 18, color: _white)),
+        pw.Text(label,
+            style: pw.TextStyle(font: base, fontSize: 9, color: _tealLight)),
+      ]);
+
+  // ── Summary cards ──────────────────────────────────────────────────────────
+
+  pw.Widget _summary(pw.Font base, pw.Font bold) => pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          _sectionTitle('Trip Summary', bold),
+          pw.SizedBox(height: 10),
+          pw.Row(children: [
+            _card('Total Distance', _dist(totalDistM), bold, base),
+            pw.SizedBox(width: 8),
+            _card('Active Time', _dur(activeTime), bold, base),
+            pw.SizedBox(width: 8),
+            _card('Avg Speed', '${avgSpeedMs.toStringAsFixed(2)} m/s', bold,
+                base),
+            pw.SizedBox(width: 8),
+            _card('Longest Rest', _dur(longestStationary), bold, base),
+          ]),
+          pw.SizedBox(height: 8),
+          pw.Row(children: [
+            _card('Zone Events', '$zoneEventCount', bold, base),
+            pw.SizedBox(width: 8),
+            _card('Days Tracked', '${_uniqueDays()}', bold, base),
+            pw.SizedBox(width: 8),
+            pw.Expanded(child: pw.SizedBox()),
+            pw.SizedBox(width: 8),
+            pw.Expanded(child: pw.SizedBox()),
+          ]),
+        ],
+      );
+
+  pw.Widget _card(String label, String value, pw.Font bold, pw.Font base) =>
+      pw.Expanded(
+        child: pw.Container(
+          decoration: pw.BoxDecoration(
+            color: _greyLight,
+            borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+          ),
+          child: pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+            children: [
+              // Left accent stripe — separate container, no borderRadius conflict
+              pw.Container(
+                width: 3,
+                decoration: const pw.BoxDecoration(
+                  color: _teal,
+                  borderRadius: pw.BorderRadius.only(
+                    topLeft: pw.Radius.circular(8),
+                    bottomLeft: pw.Radius.circular(8),
+                  ),
+                ),
+              ),
+              pw.Expanded(
+                child: pw.Padding(
+                  padding: const pw.EdgeInsets.all(12),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(value,
+                          style: pw.TextStyle(
+                              font: bold, fontSize: 14, color: _dark)),
+                      pw.Text(label,
+                          style: pw.TextStyle(
+                              font: base, fontSize: 9, color: _grey)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  // ── Zone dwell table ───────────────────────────────────────────────────────
+
+  pw.Widget _zoneDwellTable(pw.Font base, pw.Font bold) {
+    final total = zoneDwell.values.fold(0.0, (a, b) => a + b);
+    final colors = _pieColors();
+    return pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          _sectionTitle('Time in Safe Zones', bold),
+          pw.SizedBox(height: 10),
+          pw.Table(
+            columnWidths: {
+              0: const pw.FlexColumnWidth(0.4),
+              1: const pw.FlexColumnWidth(3),
+              2: const pw.FlexColumnWidth(2),
+              3: const pw.FlexColumnWidth(1.5),
+            },
+            children: [
+              pw.TableRow(
+                decoration: pw.BoxDecoration(color: _teal),
+                children: [
+                  _cell('', base, header: true),
+                  _cell('Zone Name', base, header: true),
+                  _cell('Time Spent', base, header: true),
+                  _cell('% of Total', base, header: true),
+                ],
+              ),
+              ...zoneDwell.entries.toList().asMap().entries.map((entry) {
+                final i = entry.key;
+                final name = entry.value.key;
+                final mins = entry.value.value;
+                final pct = total > 0 ? mins / total * 100 : 0.0;
+                final color = colors[i % colors.length];
+                return pw.TableRow(
+                  decoration:
+                      pw.BoxDecoration(color: i.isEven ? _white : _greyLight),
+                  children: [
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(8),
+                      child: pw.Container(
+                        width: 12,
+                        height: 12,
+                        decoration: pw.BoxDecoration(
+                            color: color,
+                            borderRadius: const pw.BorderRadius.all(
+                                pw.Radius.circular(3))),
+                      ),
+                    ),
+                    _cell(name, base),
+                    _cell(_dur(Duration(minutes: mins.toInt())), base),
+                    _cell('${pct.toStringAsFixed(1)}%', base),
+                  ],
+                );
+              }),
+            ],
+          ),
+        ]);
+  }
+
+  // ── Journey log ────────────────────────────────────────────────────────────
+
+  // Returns a FLAT list of top-level widgets (not one nested Column).
+  // MultiPage can only break pages between top-level children in its
+  // `build` list, and only for widgets that implement SpanningWidget
+  // (pw.Table, pw.Wrap, ...) — a plain pw.Column does NOT split across
+  // pages. Previously every day's header + full waypoint table for the
+  // whole date range was packed into a single outer Column and returned
+  // as the ONE item in build(), so MultiPage had to fit that entire block
+  // on one page. Once it didn't fit, the layout pass could never
+  // succeed on any page and it kept allocating new ones until it hit
+  // maxPages and threw TooManyPagesException. Returning a flat list lets
+  // each day header and each pw.Table page-break independently.
+  List<pw.Widget> _journeyLog(
+      Map<String, List<_WaypointData>> byDate, pw.Font base, pw.Font bold) {
+    final widgets = <pw.Widget>[
+      _sectionTitle('Daily Journey Log', bold),
+      pw.SizedBox(height: 10),
+      pw.Text(
+        'Key locations resolved via reverse geocoding. '
+        'Coordinates shown where no place name is available.',
+        style: pw.TextStyle(font: base, fontSize: 9, color: _grey),
+      ),
+      pw.SizedBox(height: 14),
+    ];
+
+    for (final entry in byDate.entries) {
+      final wps = entry.value;
+      widgets.add(pw.Container(
+        padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: pw.BoxDecoration(
+            color: _teal,
+            borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6))),
+        child: pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text(entry.key,
+                  style: pw.TextStyle(font: bold, fontSize: 11, color: _white)),
+              pw.Text('${wps.length} waypoints',
+                  style:
+                      pw.TextStyle(font: base, fontSize: 9, color: _tealLight)),
+            ]),
+      ));
+      widgets.add(pw.SizedBox(height: 6));
+      widgets.add(pw.Table(
+        columnWidths: {
+          0: const pw.FixedColumnWidth(28),
+          1: const pw.FixedColumnWidth(40),
+          2: const pw.FlexColumnWidth(4),
+          3: const pw.FlexColumnWidth(2),
+          4: const pw.FixedColumnWidth(50),
+        },
+        border: pw.TableBorder(
+            horizontalInside: pw.BorderSide(color: _greyLight, width: 0.5)),
+        children: [
+          pw.TableRow(
+            decoration: pw.BoxDecoration(color: _tealLight),
+            children: [
+              _cell('#', base, header: true, hColor: _dark),
+              _cell('Time', base, header: true, hColor: _dark),
+              _cell('Location', base, header: true, hColor: _dark),
+              _cell('In Zone', base, header: true, hColor: _dark),
+              _cell('Moved', base, header: true, hColor: _dark),
+            ],
+          ),
+          ...wps.asMap().entries.map((e) {
+            final i = e.key;
+            final wp = e.value;
+            return pw.TableRow(
+              decoration:
+                  pw.BoxDecoration(color: i.isEven ? _white : _greyLight),
+              children: [
+                _cell('${i + 1}', base, color: _grey),
+                _cell(wp.timeLabel, base),
+                pw.Padding(
+                  padding:
+                      const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+                  child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(wp.placeName,
+                            style: pw.TextStyle(
+                                font: bold, fontSize: 9, color: _dark)),
+                        pw.Text(wp.coords,
+                            style: pw.TextStyle(
+                                font: base, fontSize: 7, color: _grey)),
+                      ]),
+                ),
+                _cell(wp.insideZone ?? '—', base,
+                    color: wp.insideZone != null ? _green : _grey),
+                _cell(
+                    i == 0
+                        ? 'Start'
+                        : wp.distFromPrev != null
+                            ? _dist(wp.distFromPrev!)
+                            : '—',
+                    base,
+                    color: _grey),
+              ],
+            );
+          }),
+        ],
+      ));
+      widgets.add(pw.SizedBox(height: 16));
+    }
+    return widgets;
+  }
+
+  // ── Pie chart page ─────────────────────────────────────────────────────────
+
+  pw.Widget _pieSection(pw.Font base, pw.Font bold) {
+    final total = zoneDwell.values.fold(0.0, (a, b) => a + b);
+    final colors = _pieColors();
+    final entries = zoneDwell.entries.toList();
+    final slices = entries
+        .asMap()
+        .entries
+        .map((e) => _PieSlice(
+              fraction:
+                  total > 0 ? e.value.value / total : 1.0 / entries.length,
+              color: colors[e.key % colors.length],
+              label: e.value.key,
+              pct: total > 0
+                  ? e.value.value / total * 100
+                  : 100.0 / entries.length,
+            ))
+        .toList();
+
+    return pw
+        .Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+      _sectionTitle('Location Frequency by Zone', bold),
+      pw.SizedBox(height: 6),
+      pw.Text(
+        'Proportion of time your pet spent in each safe zone during the selected period.',
+        style: pw.TextStyle(font: base, fontSize: 10, color: _grey),
+      ),
+      pw.SizedBox(height: 24),
+      pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.center, children: [
+        _buildPieWidget(slices, size: 200),
+        pw.SizedBox(width: 32),
+        pw.Expanded(
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              ...entries.asMap().entries.map((e) {
+                final color = colors[e.key % colors.length];
+                final mins = e.value.value;
+                final pct = total > 0 ? mins / total * 100 : 0.0;
+                return pw.Padding(
+                  padding: const pw.EdgeInsets.only(bottom: 10),
+                  child: pw.Row(children: [
+                    pw.Container(
+                      width: 14,
+                      height: 14,
+                      decoration: pw.BoxDecoration(
+                          color: color,
+                          borderRadius:
+                              const pw.BorderRadius.all(pw.Radius.circular(3))),
+                    ),
+                    pw.SizedBox(width: 8),
+                    pw.Expanded(
+                      child: pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.Text(e.value.key,
+                                style: pw.TextStyle(
+                                    font: bold, fontSize: 10, color: _dark)),
+                            pw.Text(
+                              '${_dur(Duration(minutes: mins.toInt()))} (${pct.toStringAsFixed(1)}%)',
+                              style: pw.TextStyle(
+                                  font: base, fontSize: 9, color: _grey),
+                            ),
+                          ]),
+                    ),
+                  ]),
+                );
+              }),
+              if (total > 0) ...[
+                pw.Divider(color: _greyLight),
+                pw.Text(
+                  'Outside all zones: ${_dur(activeTime - Duration(minutes: total.toInt()))}',
+                  style: pw.TextStyle(font: base, fontSize: 9, color: _grey),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ]),
+      pw.SizedBox(height: 24),
+      // Insights box
+      pw.Container(
+        padding: const pw.EdgeInsets.all(14),
+        decoration: pw.BoxDecoration(
+            color: _tealLight,
+            borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8))),
+        child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text('Insights',
+                  style: pw.TextStyle(font: bold, fontSize: 11, color: _teal)),
+              pw.SizedBox(height: 6),
+              ..._insights(base, entries, total),
+            ]),
+      ),
+    ]);
+  }
+
+  List<pw.Widget> _insights(
+      pw.Font base, List<MapEntry<String, double>> entries, double total) {
+    if (entries.isEmpty) return [];
+    final out = <pw.Widget>[];
+    final top = entries.reduce((a, b) => a.value > b.value ? a : b);
+    final topPct = total > 0 ? top.value / total * 100 : 0.0;
+    out.add(pw.Text(
+      '• "${top.key}" was the most visited zone '
+      '(${topPct.toStringAsFixed(0)}% · ${_dur(Duration(minutes: top.value.toInt()))}).',
+      style: pw.TextStyle(font: base, fontSize: 9, color: _dark),
+    ));
+    if (entries.length > 1) {
+      final least = entries.reduce((a, b) => a.value < b.value ? a : b);
+      out.add(pw.SizedBox(height: 4));
+      out.add(pw.Text(
+        '• "${least.key}" had the least time (${_dur(Duration(minutes: least.value.toInt()))}).',
+        style: pw.TextStyle(font: base, fontSize: 9, color: _dark),
+      ));
+    }
+    final outside = (activeTime.inMinutes - total).clamp(0, double.infinity);
+    if (outside > 0) {
+      out.add(pw.SizedBox(height: 4));
+      out.add(pw.Text(
+        '• Your pet spent ${_dur(Duration(minutes: outside.toInt()))} outside all safe zones.',
+        style: pw.TextStyle(font: base, fontSize: 9, color: _dark),
+      ));
+    }
+    return out;
+  }
+
+  // ── Shared helpers ─────────────────────────────────────────────────────────
+
+  pw.Widget _sectionTitle(String title, pw.Font bold) =>
+      pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+        pw.Text(title,
+            style: pw.TextStyle(font: bold, fontSize: 14, color: _teal)),
+        pw.SizedBox(height: 2),
+        pw.Container(height: 2, width: 40, color: _teal),
+      ]);
+
+  pw.Widget _cell(String text, pw.Font base,
+      {bool header = false, PdfColor? color, PdfColor? hColor}) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+      child: pw.Text(text,
+          style: pw.TextStyle(
+            font: header ? pw.Font.helveticaBold() : base,
+            fontSize: 9,
+            color: header ? (hColor ?? _white) : (color ?? _dark),
+          )),
+    );
+  }
+
+  List<PdfColor> _pieColors() => [
+        const PdfColor.fromInt(0xFF00897B),
+        const PdfColor.fromInt(0xFF1E88E5),
+        const PdfColor.fromInt(0xFFE53935),
+        const PdfColor.fromInt(0xFF8E24AA),
+        const PdfColor.fromInt(0xFFF4511E),
+        const PdfColor.fromInt(0xFF43A047),
+        const PdfColor.fromInt(0xFFFFB300),
+      ];
+
+  int _uniqueDays() {
+    final seen = <String>{};
+    for (final e in history) {
+      seen.add('${e.timestamp.year}-${e.timestamp.month}-${e.timestamp.day}');
+    }
+    return seen.length;
+  }
+
+  String _dateOnly(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+  String _dt(DateTime d) =>
+      '${_dateOnly(d)} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+
+  String _dist(double m) => m < 1000
+      ? '${m.toStringAsFixed(0)} m'
+      : '${(m / 1000).toStringAsFixed(2)} km';
+
+  String _dur(Duration d) {
+    if (d.inMinutes < 1) return '< 1 min';
+    if (d.inHours < 1) return '${d.inMinutes} min';
+    return '${d.inHours}h ${d.inMinutes % 60}m';
+  }
 }

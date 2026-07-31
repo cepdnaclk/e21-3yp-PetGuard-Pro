@@ -2,6 +2,61 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 enum GeofenceType { circle, polygon }
 
+// ── Geofence color palette ───────────────────────────────────────────────
+//
+// Single source of truth for geofence colors. Previously the "create zone"
+// sheet and the "edit zone" dialog in manage_zones_screen.dart each had
+// their own hard-coded color lists (one with 6 colors, one with 8, with
+// different values) — that's why some colors looked like they "didn't
+// work": a zone saved with one of the extra colors from the edit dialog
+// couldn't be picked again from the create sheet, and several of the 8
+// colors were too close to each other to tell apart at a glance.
+//
+// Now there are exactly 6 colors, chosen to be clearly distinguishable
+// from one another (including from each other at a glance on a map):
+// Red, Green, Blue, Purple, Orange, Pink.
+class GeofenceColorOption {
+  final String name;
+  final int value; // ARGB int
+
+  const GeofenceColorOption(this.name, this.value);
+}
+
+class GeofenceColors {
+  GeofenceColors._();
+
+  static const List<GeofenceColorOption> options = [
+    GeofenceColorOption('Red', 0xFFE53935),
+    GeofenceColorOption('Green', 0xFF2E7D32),
+    GeofenceColorOption('Blue', 0xFF1565C0),
+    GeofenceColorOption('Purple', 0xFF6A1B9A),
+    GeofenceColorOption('Orange', 0xFFEF6C00),
+    GeofenceColorOption('Pink', 0xFFD81B60),
+  ];
+
+  static const int defaultValue = 0xFFE53935; // Red
+
+  /// All valid color int values, in order.
+  static List<int> get values => options.map((o) => o.value).toList();
+
+  /// Human-readable name for a stored color value, falling back to the
+  /// closest/default option if the value is from an old/removed palette
+  /// (e.g. zones created before this palette was introduced).
+  static String nameOf(int value) {
+    for (final o in options) {
+      if (o.value == value) return o.name;
+    }
+    return 'Custom';
+  }
+
+  /// Ensures a color value is one of the supported options. Old data saved
+  /// with a since-removed color falls back to the default so the UI never
+  /// shows a color swatch that isn't in the picker.
+  static int sanitize(int value) {
+    return values.contains(value) ? value : defaultValue;
+  }
+}
+
 class GeofenceSchedule {
   final bool isScheduled;
   final List<bool> activeDays; // index 0=Mon … 6=Sun
@@ -106,7 +161,7 @@ class Geofence {
     this.isActive = true,
     this.zoneType = GeofenceType.circle,
     this.polygonPoints = const [],
-    this.colorValue = 0xFF00897B,
+    this.colorValue = GeofenceColors.defaultValue,
     GeofenceSchedule? schedule,
   }) : schedule = schedule ?? const GeofenceSchedule();
 
@@ -159,7 +214,8 @@ class Geofence {
       isActive: json['isActive'] as bool? ?? true,
       zoneType: type,
       polygonPoints: poly,
-      colorValue: json['colorValue'] as int? ?? 0xFF00897B,
+      colorValue: GeofenceColors.sanitize(
+          json['colorValue'] as int? ?? GeofenceColors.defaultValue),
       schedule: sched,
     );
   }

@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../providers/location_provider.dart';
@@ -595,9 +597,9 @@ class _CircleCreatorScreenState extends State<_CircleCreatorScreen> {
               ]),
               Slider(
                 value: _radius,
-                min: 25,
+                min: 5,
                 max: 2000,
-                divisions: 79,
+                divisions: 199,
                 activeColor: _teal,
                 label: '${_radius.toInt()}m',
                 onChanged: (v) => setState(() => _radius = v),
@@ -1523,9 +1525,9 @@ class _PlaceSearchScreenState extends State<_PlaceSearchScreen> {
                         ]),
                         Slider(
                             value: _radius,
-                            min: 25,
+                            min: 5,
                             max: 2000,
-                            divisions: 79,
+                            divisions: 199,
                             activeColor: _teal,
                             label: '${_radius.toInt()}m',
                             onChanged: (v) => setState(() => _radius = v)),
@@ -1627,7 +1629,7 @@ class _EditZoneScreenState extends State<_EditZoneScreen> {
     _radius = widget.zone.radiusInMeters;
     _polygonPoints = List.from(widget.zone.polygonPoints);
     _schedule = widget.zone.schedule;
-    _colorValue = widget.zone.colorValue;
+    _colorValue = GeofenceColors.sanitize(widget.zone.colorValue);
   }
 
   @override
@@ -1665,6 +1667,14 @@ class _EditZoneScreenState extends State<_EditZoneScreen> {
         SizedBox(
           height: 320,
           child: GoogleMap(
+            // This map lives inside a SingleChildScrollView (see `body:`
+            // above), which otherwise intercepts drag/pinch gestures meant
+            // for the map — that's why two-finger zoom/pan didn't work here
+            // even though it worked fine on the full-screen map pickers.
+            gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+              Factory<OneSequenceGestureRecognizer>(
+                  () => EagerGestureRecognizer()),
+            },
             initialCameraPosition: CameraPosition(
                 target: LatLng(
                     widget.zone.centerLatitude, widget.zone.centerLongitude),
@@ -1756,9 +1766,9 @@ class _EditZoneScreenState extends State<_EditZoneScreen> {
                   ]),
                   Slider(
                       value: _radius,
-                      min: 25,
+                      min: 5,
                       max: 2000,
-                      divisions: 79,
+                      divisions: 199,
                       activeColor: _teal,
                       label: '${_radius.toInt()}m',
                       onChanged: (v) => setState(() => _radius = v)),
@@ -1782,34 +1792,34 @@ class _EditZoneScreenState extends State<_EditZoneScreen> {
   }
 
   Widget _buildColorPicker() {
-    const colors = [
-      0xFF00897B,
-      0xFF1E88E5,
-      0xFFE53935,
-      0xFF8E24AA,
-      0xFFF4511E,
-      0xFF43A047,
-      0xFFFFB300,
-      0xFF00ACC1
-    ];
     return Wrap(
         spacing: 10,
-        children: colors.map((c) {
+        runSpacing: 8,
+        children: GeofenceColors.options.map((opt) {
+          final c = opt.value;
           final sel = _colorValue == c;
           return GestureDetector(
             onTap: () => setState(() => _colorValue = c),
-            child: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                  color: Color(c),
-                  shape: BoxShape.circle,
-                  border:
-                      sel ? Border.all(color: Colors.black, width: 3) : null),
-              child: sel
-                  ? const Icon(Icons.check, color: Colors.white, size: 18)
-                  : null,
-            ),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                    color: Color(c),
+                    shape: BoxShape.circle,
+                    border:
+                        sel ? Border.all(color: Colors.black, width: 3) : null),
+                child: sel
+                    ? const Icon(Icons.check, color: Colors.white, size: 18)
+                    : null,
+              ),
+              const SizedBox(height: 2),
+              Text(opt.name,
+                  style: TextStyle(
+                      fontSize: 10,
+                      color: sel ? Colors.black87 : Colors.grey.shade600,
+                      fontWeight: sel ? FontWeight.bold : FontWeight.normal)),
+            ]),
           );
         }).toList());
   }
@@ -1962,7 +1972,7 @@ void _showZoneNameDialog({
   final nameCtrl = TextEditingController(text: defaultName);
   double currentRadius = radius;
   GeofenceSchedule schedule = const GeofenceSchedule();
-  int colorValue = 0xFF00897B;
+  int colorValue = GeofenceColors.defaultValue;
 
   showModalBottomSheet(
     context: context,
@@ -2015,9 +2025,9 @@ void _showZoneNameDialog({
               ]),
               Slider(
                   value: currentRadius,
-                  min: 25,
+                  min: 5,
                   max: 2000,
-                  divisions: 79,
+                  divisions: 199,
                   activeColor: teal,
                   label: '${currentRadius.toInt()}m',
                   onChanged: (v) => setSheet(() => currentRadius = v)),
@@ -2028,30 +2038,35 @@ void _showZoneNameDialog({
             const SizedBox(height: 8),
             Wrap(
                 spacing: 10,
-                children: [
-                  0xFF00897B,
-                  0xFF1E88E5,
-                  0xFFE53935,
-                  0xFF8E24AA,
-                  0xFFF4511E,
-                  0xFF43A047
-                ].map((c) {
+                runSpacing: 8,
+                children: GeofenceColors.options.map((opt) {
+                  final c = opt.value;
                   final sel = colorValue == c;
                   return GestureDetector(
                     onTap: () => setSheet(() => colorValue = c),
-                    child: Container(
-                        width: 30,
-                        height: 30,
-                        decoration: BoxDecoration(
-                            color: Color(c),
-                            shape: BoxShape.circle,
-                            border: sel
-                                ? Border.all(color: Colors.black, width: 2.5)
-                                : null),
-                        child: sel
-                            ? const Icon(Icons.check,
-                                color: Colors.white, size: 16)
-                            : null),
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Container(
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                              color: Color(c),
+                              shape: BoxShape.circle,
+                              border: sel
+                                  ? Border.all(color: Colors.black, width: 2.5)
+                                  : null),
+                          child: sel
+                              ? const Icon(Icons.check,
+                                  color: Colors.white, size: 16)
+                              : null),
+                      const SizedBox(height: 2),
+                      Text(opt.name,
+                          style: TextStyle(
+                              fontSize: 10,
+                              color:
+                                  sel ? Colors.black87 : Colors.grey.shade600,
+                              fontWeight:
+                                  sel ? FontWeight.bold : FontWeight.normal)),
+                    ]),
                   );
                 }).toList()),
             const SizedBox(height: 16),

@@ -3,7 +3,6 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../providers/location_provider.dart';
 import '../services/location_history_service.dart';
 import '../models/location_history_entry.dart';
@@ -53,7 +52,6 @@ class _LocationDashboardState extends ConsumerState<LocationDashboard>
   static const Color _warn = Color(0xFFF57F17);
   static const Color _alert = Color(0xFFC62828);
 
-  GoogleMapController? _miniMapController;
   late AnimationController _pulseCtrl;
   late Animation<double> _pulseAnim;
 
@@ -72,7 +70,6 @@ class _LocationDashboardState extends ConsumerState<LocationDashboard>
   @override
   void dispose() {
     _pulseCtrl.dispose();
-    _miniMapController?.dispose();
     super.dispose();
   }
 
@@ -114,7 +111,7 @@ class _LocationDashboardState extends ConsumerState<LocationDashboard>
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         title: const Text(
-          'GPS Tracking',
+          'Location Monitoring',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
         ),
         backgroundColor: _primary,
@@ -128,18 +125,11 @@ class _LocationDashboardState extends ConsumerState<LocationDashboard>
           ),
         ],
       ),
-      body: RefreshIndicator(
-        color: _primary,
-        onRefresh: () async => ref.invalidate(locationStreamProvider),
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: locationAsync.when(
-            data: (location) =>
-                _buildContent(context, location, geofenceState, historyAsync),
-            loading: () => _buildLoading(),
-            error: (err, _) => _buildError(err),
-          ),
-        ),
+      body: locationAsync.when(
+        data: (location) =>
+            _buildContent(context, location, geofenceState, historyAsync),
+        loading: () => _buildLoading(),
+        error: (err, _) => _buildError(err),
       ),
     );
   }
@@ -212,41 +202,41 @@ class _LocationDashboardState extends ConsumerState<LocationDashboard>
           icon: statusIcon,
           location: location,
         ),
-        const SizedBox(height: 12),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: _buildMiniMap(location, geofenceState, statusColor),
-        ),
-        const SizedBox(height: 12),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: historyAsync.when(
-            data: (h) => _buildTodaySummary(h, location),
-            loading: () => _buildTodaySummary([], location),
-            error: (_, __) => _buildTodaySummary([], location),
+        const SizedBox(height: 10),
+        // Today's summary + safe zones share the flexible middle area. On
+        // most phones with a handful of zones this never needs to scroll;
+        // if there are many zones, only this middle section scrolls so the
+        // hero status and quick actions below stay visible at all times.
+        Expanded(
+          child: RefreshIndicator(
+            color: _primary,
+            onRefresh: () async => ref.invalidate(locationStreamProvider),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  historyAsync.when(
+                    data: (h) => _buildTodaySummary(h, location),
+                    loading: () => _buildTodaySummary([], location),
+                    error: (_, __) => _buildTodaySummary([], location),
+                  ),
+                  const SizedBox(height: 10),
+                  if (geofenceState.geofences.isNotEmpty)
+                    _buildZoneStatusList(location, geofenceState)
+                  else
+                    _buildNoZonesCard(context),
+                ],
+              ),
+            ),
           ),
         ),
-        const SizedBox(height: 12),
-        if (geofenceState.geofences.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: _buildZoneStatusList(location, geofenceState),
-          ),
-        if (geofenceState.geofences.isNotEmpty) const SizedBox(height: 12),
+        const SizedBox(height: 10),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: historyAsync.when(
-            data: (h) => _buildRecentTimeline(h),
-            loading: () => const SizedBox(),
-            error: (_, __) => const SizedBox(),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
           child: _buildQuickActions(context, location),
         ),
-        const SizedBox(height: 24),
       ],
     );
   }
@@ -340,110 +330,6 @@ class _LocationDashboardState extends ConsumerState<LocationDashboard>
           ),
         ),
       ]),
-    );
-  }
-
-  // ── Mini Live Map ─────────────────────────────────────────────────────────
-  Widget _buildMiniMap(
-    PetLocation location,
-    GeofenceState geofenceState,
-    Color statusColor,
-  ) {
-    final petPos = LatLng(location.latitude, location.longitude);
-
-    return GestureDetector(
-      onTap: () => _openLiveMap(context),
-      child: Container(
-        height: 200,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 8,
-                offset: const Offset(0, 2))
-          ],
-        ),
-        clipBehavior: Clip.hardEdge,
-        child: Stack(children: [
-          GoogleMap(
-            initialCameraPosition: CameraPosition(target: petPos, zoom: 15.5),
-            onMapCreated: (c) => _miniMapController = c,
-            myLocationEnabled: false,
-            myLocationButtonEnabled: false,
-            zoomControlsEnabled: false,
-            scrollGesturesEnabled: false,
-            rotateGesturesEnabled: false,
-            tiltGesturesEnabled: false,
-            zoomGesturesEnabled: false,
-            markers: {
-              Marker(
-                markerId: const MarkerId('pet'),
-                position: petPos,
-                icon: BitmapDescriptor.defaultMarkerWithHue(
-                    BitmapDescriptor.hueRed),
-                infoWindow: const InfoWindow(title: 'Your Pet'),
-              ),
-            },
-            // Only draw zones that are currently effectively active
-            circles: geofenceState.geofences
-                .where((f) => f.isActive && f.schedule.isActiveNow)
-                .map((f) => Circle(
-                      circleId: CircleId(f.id),
-                      center: LatLng(f.centerLatitude, f.centerLongitude),
-                      radius: f.radiusInMeters,
-                      fillColor: _primary.withValues(alpha: 0.15),
-                      strokeColor: _primary,
-                      strokeWidth: 2,
-                    ))
-                .toSet(),
-            polygons: geofenceState.geofences
-                .where((f) =>
-                    f.isActive &&
-                    f.schedule.isActiveNow &&
-                    f.zoneType == GeofenceType.polygon &&
-                    f.polygonPoints.length >= 3)
-                .map((f) => Polygon(
-                      polygonId: PolygonId(f.id),
-                      points: f.polygonPoints,
-                      fillColor: _primary.withValues(alpha: 0.15),
-                      strokeColor: _primary,
-                      strokeWidth: 2,
-                    ))
-                .toSet(),
-          ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [
-                    Colors.black.withValues(alpha: 0.55),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-              child: Row(children: [
-                const Icon(Icons.touch_app, size: 14, color: Colors.white70),
-                const SizedBox(width: 4),
-                const Text('Tap to open full map',
-                    style: TextStyle(color: Colors.white70, fontSize: 12)),
-                const Spacer(),
-                Text(
-                  '${location.latitude.toStringAsFixed(4)}, '
-                  '${location.longitude.toStringAsFixed(4)}',
-                  style: const TextStyle(color: Colors.white54, fontSize: 11),
-                ),
-              ]),
-            ),
-          ),
-        ]),
-      ),
     );
   }
 
@@ -627,53 +513,46 @@ class _LocationDashboardState extends ConsumerState<LocationDashboard>
     );
   }
 
-  // ── Recent Timeline ───────────────────────────────────────────────────────
-  Widget _buildRecentTimeline(List<LocationHistoryEntry> history) {
-    if (history.isEmpty) return const SizedBox();
-    final events = _buildTimelineEvents(history.take(8).toList());
-    if (events.isEmpty) return const SizedBox();
-
+  // ── No Safe Zones (empty state) ───────────────────────────────────────────
+  Widget _buildNoZonesCard(BuildContext context) {
     return Card(
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              Icon(Icons.timeline, color: _primary, size: 18),
-              const SizedBox(width: 8),
-              const Text('Recent Activity',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-            ]),
-            const SizedBox(height: 12),
-            ...events.take(5).map(_buildTimelineEvent),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTimelineEvent(_TimelineEvent event) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(children: [
-        Container(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(
-            color: event.color.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(8),
+        padding: const EdgeInsets.all(20),
+        child: Column(children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: _primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.shield_outlined, color: _primary, size: 30),
           ),
-          child: Icon(event.icon, size: 15, color: event.color),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-            child: Text(event.label, style: const TextStyle(fontSize: 13))),
-        Text(_formatTimeOnly(event.time),
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
-      ]),
+          const SizedBox(height: 12),
+          const Text('No Safe Zones Yet',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+          const SizedBox(height: 4),
+          Text(
+            'Create a safe zone to get alerted when your pet wanders off.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 14),
+          ElevatedButton.icon(
+            onPressed: () => _openManageZones(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _primary,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            ),
+            icon: const Icon(Icons.add, color: Colors.white, size: 18),
+            label: const Text('Add Safe Zone',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ]),
+      ),
     );
   }
 
@@ -822,7 +701,7 @@ class _LocationDashboardState extends ConsumerState<LocationDashboard>
   Future<void> _triggerFindMyPet(BuildContext context) async {
     final cloudSvc = ref.read(cloudServiceProvider);
     try {
-      // ✅ Step 1: Send true to activate buzzer
+      // Step 1: Send true to activate buzzer
       await cloudSvc.sendBuzzerCommand(true);
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -944,55 +823,6 @@ class _LocationDashboardState extends ConsumerState<LocationDashboard>
     );
   }
 
-  // ── Timeline helpers ──────────────────────────────────────────────────────
-  List<_TimelineEvent> _buildTimelineEvents(
-      List<LocationHistoryEntry> history) {
-    if (history.isEmpty) return [];
-    if (history.length < 2) {
-      return [
-        _TimelineEvent(
-          icon: Icons.location_on,
-          label: 'Location recorded',
-          time: history.first.timestamp,
-          color: _primary,
-        ),
-      ];
-    }
-
-    final events = <_TimelineEvent>[];
-    events.add(_TimelineEvent(
-      icon: Icons.my_location,
-      label: 'Location updated',
-      time: history.first.timestamp,
-      color: _primary,
-    ));
-
-    for (int i = 1; i < history.length - 1; i++) {
-      final prev = history[i + 1];
-      final curr = history[i];
-      final dist = _approxDistance(
-          prev.latitude, prev.longitude, curr.latitude, curr.longitude);
-      final timeDiff = curr.timestamp.difference(prev.timestamp).inMinutes;
-
-      if (dist < 50 && timeDiff > 5) {
-        events.add(_TimelineEvent(
-          icon: Icons.pause_circle_outline,
-          label: 'Stationary for ~${timeDiff}min',
-          time: curr.timestamp,
-          color: Colors.orange.shade700,
-        ));
-      } else if (dist > 200) {
-        events.add(_TimelineEvent(
-          icon: Icons.directions_walk,
-          label: 'Moved ${_formatDistance(dist)}',
-          time: curr.timestamp,
-          color: Colors.blue.shade700,
-        ));
-      }
-    }
-    return events;
-  }
-
   // ── Utility ───────────────────────────────────────────────────────────────
   String _formatDuration(Duration d) {
     if (d.inMinutes < 1) return '<1m';
@@ -1006,10 +836,6 @@ class _LocationDashboardState extends ConsumerState<LocationDashboard>
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     return '${time.hour}:${time.minute.toString().padLeft(2, '0')}';
   }
-
-  String _formatTimeOnly(DateTime time) =>
-      '${time.hour.toString().padLeft(2, '0')}:'
-      '${time.minute.toString().padLeft(2, '0')}';
 
   String _formatDistance(double meters) => meters < 1000
       ? '${meters.toStringAsFixed(0)}m'
@@ -1030,16 +856,3 @@ class _LocationDashboardState extends ConsumerState<LocationDashboard>
 
 // ── Enums & data classes ─────────────────────────────────────────────────────
 enum _PetStatus { safe, wandering, alert }
-
-class _TimelineEvent {
-  final IconData icon;
-  final String label;
-  final DateTime time;
-  final Color color;
-  const _TimelineEvent({
-    required this.icon,
-    required this.label,
-    required this.time,
-    required this.color,
-  });
-}
