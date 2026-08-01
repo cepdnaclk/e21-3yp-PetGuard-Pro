@@ -99,7 +99,16 @@ export default function SupportTab() {
                   <div className="flex items-start justify-between">
                     <div>
                       <h4 className="font-bold text-slate-800 dark:text-slate-100">{ticket.name || 'Anonymous Owner'}</h4>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{ticket.email || 'No email provided'}</p>
+                      {ticket.email ? (
+                        <a
+                          href={`mailto:${ticket.email}`}
+                          className="text-xs text-slate-400 dark:text-slate-500 hover:text-teal-600 dark:hover:text-teal-400 underline transition mt-0.5 inline-block"
+                        >
+                          {ticket.email}
+                        </a>
+                      ) : (
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">No email provided</p>
+                      )}
                     </div>
 
                     {/* Status Badge */}

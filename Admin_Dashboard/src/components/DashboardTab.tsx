@@ -256,7 +256,7 @@ export default function DashboardTab() {
           const loc = val.current_location || val.location || {};
           const health = val.health || {};
           const battery = val.battery || {};
-          
+
           return {
             id,
             activityType: (current.activity_type || 'Unknown').toUpperCase(),
@@ -317,7 +317,7 @@ export default function DashboardTab() {
           </div>
           <div className="mt-4">
             <span className="text-3xl font-extrabold text-slate-800 dark:text-slate-100">{stats.harnesses}</span>
-            <p className="text-xs text-slate-400 dark:text-slate-400 mt-1">Smart Harnesses</p>
+            <p className="text-xs text-slate-400 dark:text-slate-400 mt-1">Total Harnesses</p>
           </div>
         </div>
 
@@ -363,8 +363,8 @@ export default function DashboardTab() {
             <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorPackets" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#00897B" stopOpacity={0.2}/>
-                  <stop offset="95%" stopColor="#00897B" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#00897B" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#00897B" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="#94a3b8" />
@@ -424,7 +424,7 @@ export default function DashboardTab() {
         return (
           <div id="print-overlay" className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
             <div id="printable-area" className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl max-w-4xl w-full p-0 shadow-xl overflow-hidden my-8">
-              
+
               {/* Report Header Banner */}
               <div className="bg-gradient-to-r from-teal-600 to-emerald-600 text-white p-6 relative">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -483,10 +483,10 @@ export default function DashboardTab() {
                       ) : (
                         reportData.map((item) => {
                           const batVal = parseInt(item.battery);
-                          const batteryColor = batVal > 50 
-                            ? 'bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400' 
-                            : batVal > 20 
-                              ? 'bg-orange-100 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400' 
+                          const batteryColor = batVal > 50
+                            ? 'bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400'
+                            : batVal > 20
+                              ? 'bg-orange-100 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400'
                               : 'bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-400';
 
                           return (
