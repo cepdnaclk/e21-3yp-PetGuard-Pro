@@ -112,6 +112,16 @@ export default function UsersTab() {
       return;
     }
     try {
+      // Release harness stock status if assigned
+      if (user.selectedPetId) {
+        try {
+          const stockRef = doc(firestore, 'stock', user.selectedPetId);
+          await updateDoc(stockRef, { status: 'available' });
+        } catch (e) {
+          console.error("Error releasing harness stock status on user deletion:", e);
+        }
+      }
+
       const userRef = doc(firestore, 'users', user.id);
       await deleteDoc(userRef);
       if (selectedUser?.id === user.id) {
@@ -119,6 +129,29 @@ export default function UsersTab() {
       }
     } catch (e) {
       alert(`Error deleting user: ${e}`);
+    }
+  };
+
+  const handleReleaseHarness = async () => {
+    if (!selectedUser || !selectedUser.selectedPetId) return;
+    const petId = selectedUser.selectedPetId;
+
+    if (!window.confirm(`Are you sure you want to release harness "${petId}" from ${selectedUser.name || 'this user'}?`)) {
+      return;
+    }
+
+    try {
+      // 1. Release harness status in Firestore (set back to 'available')
+      const stockRef = doc(firestore, 'stock', petId);
+      await updateDoc(stockRef, { status: 'available' });
+
+      // 2. Update Firestore user doc to clear selectedPetId
+      const userRef = doc(firestore, 'users', selectedUser.id);
+      await updateDoc(userRef, { selectedPetId: null });
+
+      alert(`Harness ID "${petId}" successfully released and marked as available in stock!`);
+    } catch (err: any) {
+      alert(err.message || 'An error occurred during harness release');
     }
   };
 
@@ -411,6 +444,12 @@ export default function UsersTab() {
                       className="w-full py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold transition flex items-center justify-center border border-slate-200 dark:border-slate-600"
                     >
                       Change Harness (Assign another Pet ID)
+                    </button>
+                    <button
+                      onClick={handleReleaseHarness}
+                      className="w-full py-2 bg-rose-50 hover:bg-rose-100/80 dark:bg-rose-950/20 dark:hover:bg-rose-900/30 text-rose-600 dark:text-rose-455 rounded-lg text-xs font-bold transition flex items-center justify-center border border-rose-200/30 dark:border-rose-900/50 mt-2"
+                    >
+                      Remove Harness Assignment (Release ID)
                     </button>
                   </div>
                 ) : (
