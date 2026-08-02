@@ -368,3 +368,48 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 })();
+
+// User Guide Video Chapter Seeker
+(function () {
+    const video = document.getElementById('guide-video');
+    const chapters = document.querySelectorAll('.ug-chapters li');
+
+    if (video && chapters.length > 0) {
+        chapters.forEach((chapter) => {
+            chapter.addEventListener('click', () => {
+                const time = parseInt(chapter.getAttribute('data-time'), 10);
+                if (!isNaN(time)) {
+                    video.currentTime = time;
+                    video.play();
+                    
+                    // Highlight active chapter
+                    chapters.forEach(c => c.classList.remove('active'));
+                    chapter.classList.add('active');
+                }
+            });
+        });
+
+        // Update active chapter based on video current time
+        video.addEventListener('timeupdate', () => {
+            const currentTime = video.currentTime;
+            let activeIndex = -1;
+            
+            for (let i = 0; i < chapters.length; i++) {
+                const time = parseInt(chapters[i].getAttribute('data-time'), 10);
+                if (currentTime >= time) {
+                    activeIndex = i;
+                }
+            }
+
+            if (activeIndex !== -1) {
+                chapters.forEach((c, idx) => {
+                    if (idx === activeIndex) {
+                        c.classList.add('active');
+                    } else {
+                        c.classList.remove('active');
+                    }
+                });
+            }
+        });
+    }
+})();
