@@ -276,7 +276,10 @@ export default function DashboardTab() {
       }
     } catch (e) {
       console.error(e);
-      alert('Error fetching database report logs.');
+      setModalContent({
+        title: 'Error',
+        body: 'Error fetching database report logs.',
+      });
     }
   };
 

@@ -26,6 +26,17 @@ export default function SupportTab() {
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
 
+  // Themed Alert Modal State
+  const [alertModal, setAlertModal] = useState<{
+    title: string;
+    body: string;
+    type: 'success' | 'error' | 'info';
+  } | null>(null);
+
+  const showAlert = (title: string, body: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setAlertModal({ title, body, type });
+  };
+
   // Subscribe to support_tickets stream
   useEffect(() => {
     const q = query(collection(firestore, 'support_tickets'), orderBy('timestamp', 'desc'));
@@ -51,7 +62,7 @@ export default function SupportTab() {
       const ticketRef = doc(firestore, 'support_tickets', ticket.id);
       await updateDoc(ticketRef, { status: newStatus });
     } catch (e) {
-      alert(`Error toggling ticket status: ${e}`);
+      showAlert('Error', `Error toggling ticket status: ${e}`, 'error');
     }
   };
 
@@ -63,7 +74,7 @@ export default function SupportTab() {
       const ticketRef = doc(firestore, 'support_tickets', ticket.id);
       await deleteDoc(ticketRef);
     } catch (e) {
-      alert(`Error deleting ticket: ${e}`);
+      showAlert('Error', `Error deleting ticket: ${e}`, 'error');
     }
   };
 
@@ -98,7 +109,7 @@ export default function SupportTab() {
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(emailBody);
-    alert('Email body copied to clipboard!');
+    showAlert('Success', 'Email body copied to clipboard!', 'success');
   };
 
   const formatTimestamp = (timestamp: any) => {
@@ -294,6 +305,40 @@ export default function SupportTab() {
               </div>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Themed Alert Modal Overlay */}
+      {alertModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl max-w-sm w-full p-6 shadow-2xl flex flex-col space-y-4 text-center">
+            <div className={`mx-auto w-12 h-12 rounded-full flex items-center justify-center border ${
+              alertModal.type === 'success'
+                ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200/50 dark:border-emerald-900/50 text-emerald-600 dark:text-emerald-400'
+                : alertModal.type === 'error'
+                ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-200/50 dark:border-rose-900/50 text-rose-600 dark:text-rose-400'
+                : 'bg-teal-50 dark:bg-teal-950/20 border-teal-200/50 dark:border-teal-900/50 text-teal-600 dark:text-teal-400'
+            }`}>
+              {alertModal.type === 'success' ? (
+                <CheckCircle className="w-6 h-6" />
+              ) : (
+                <AlertCircle className="w-6 h-6" />
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">{alertModal.title}</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed whitespace-pre-wrap">{alertModal.body}</p>
+            </div>
+            <div className="flex justify-center pt-2">
+              <button
+                type="button"
+                onClick={() => setAlertModal(null)}
+                className="px-6 py-2 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
+              >
+                OK
+              </button>
+            </div>
           </div>
         </div>
       )}

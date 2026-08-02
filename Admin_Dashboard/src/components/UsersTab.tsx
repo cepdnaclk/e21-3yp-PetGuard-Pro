@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, where } from 'firebase/firestore';
 import { ref, set } from 'firebase/database';
 import { firestore, rtdb } from '../firebase';
-import { Search, UserCheck, UserX, Trash2, PlusCircle, Info, X, Package, ShieldAlert } from 'lucide-react';
+import { Search, UserCheck, UserX, Trash2, PlusCircle, Info, X, Package, ShieldAlert, CheckCircle } from 'lucide-react';
 
 interface User {
   id: string;
@@ -35,6 +35,17 @@ export default function UsersTab() {
   } | null>(null);
   const [confirmInputVal, setConfirmInputVal] = useState('');
   const [confirmModalError, setConfirmModalError] = useState<string | null>(null);
+
+  // Themed Alert Modal State
+  const [alertModal, setAlertModal] = useState<{
+    title: string;
+    body: string;
+    type: 'success' | 'error' | 'info';
+  } | null>(null);
+
+  const showAlert = (title: string, body: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setAlertModal({ title, body, type });
+  };
 
   // Available Harness Stock selection modal states
   const [availableStock, setAvailableStock] = useState<any[]>([]);
@@ -111,7 +122,7 @@ export default function UsersTab() {
       const userRef = doc(firestore, 'users', user.id);
       await updateDoc(userRef, { status: newStatus });
     } catch (e) {
-      alert(`Error updating user status: ${e}`);
+      showAlert('Error', `Error updating user status: ${e}`, 'error');
     }
   };
 
@@ -136,7 +147,7 @@ export default function UsersTab() {
         setSelectedUser(null);
       }
     } catch (e) {
-      alert(`Error deleting user: ${e}`);
+      showAlert('Error', `Error deleting user: ${e}`, 'error');
     }
   };
 
@@ -157,9 +168,9 @@ export default function UsersTab() {
       const userRef = doc(firestore, 'users', selectedUser.id);
       await updateDoc(userRef, { selectedPetId: null });
 
-      alert(`Harness ID "${petId}" successfully released and marked as available in stock!`);
+      showAlert('Success', `Harness ID "${petId}" successfully released and marked as available in stock!`, 'success');
     } catch (err: any) {
-      alert(err.message || 'An error occurred during harness release');
+      showAlert('Error', err.message || 'An error occurred during harness release', 'error');
     }
   };
 
@@ -216,7 +227,7 @@ export default function UsersTab() {
       // Reset
       setNewPetId('');
       setShowReassignForm(false);
-      alert(`Harness ID "${petId}" successfully provisioned and linked to ${selectedUser.name}!`);
+      showAlert('Success', `Harness ID "${petId}" successfully provisioned and linked to ${selectedUser.name}!`, 'success');
     } catch (err: any) {
       setAllocationError(err.message || 'An error occurred during allocation');
     } finally {
@@ -727,6 +738,42 @@ export default function UsersTab() {
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Themed Alert Modal Overlay */}
+      {alertModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl max-w-sm w-full p-6 shadow-2xl flex flex-col space-y-4 text-center">
+            <div className={`mx-auto w-12 h-12 rounded-full flex items-center justify-center border ${
+              alertModal.type === 'success'
+                ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200/50 dark:border-emerald-900/50 text-emerald-600 dark:text-emerald-400'
+                : alertModal.type === 'error'
+                ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-200/50 dark:border-rose-900/50 text-rose-600 dark:text-rose-400'
+                : 'bg-teal-50 dark:bg-teal-950/20 border-teal-200/50 dark:border-teal-900/50 text-teal-600 dark:text-teal-400'
+            }`}>
+              {alertModal.type === 'success' ? (
+                <CheckCircle className="w-6 h-6" />
+              ) : alertModal.type === 'error' ? (
+                <ShieldAlert className="w-6 h-6" />
+              ) : (
+                <Info className="w-6 h-6" />
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">{alertModal.title}</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed whitespace-pre-wrap">{alertModal.body}</p>
+            </div>
+            <div className="flex justify-center pt-2">
+              <button
+                type="button"
+                onClick={() => setAlertModal(null)}
+                className="px-6 py-2 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
+              >
+                OK
+              </button>
+            </div>
           </div>
         </div>
       )}
