@@ -80,22 +80,35 @@ export default function UsersTab() {
         .map((d) => ({ id: d.id, ...d.data() } as User))
         .filter((u) => u.status !== 'not_varified');
       setUsers(list);
-
-      // Auto update selected user details if open
-      if (selectedUser) {
-        const updated = list.find((u) => u.id === selectedUser.id);
-        if (updated) setSelectedUser(updated);
-      }
     });
 
     return () => unsubscribe();
-  }, [selectedUser]);
+  }, []);
+
+  // Auto update selected user details if open and details changed
+  useEffect(() => {
+    if (selectedUser) {
+      const updated = users.find((u) => u.id === selectedUser.id);
+      if (updated) {
+        if (
+          updated.name !== selectedUser.name ||
+          updated.email !== selectedUser.email ||
+          updated.phone !== selectedUser.phone ||
+          updated.status !== selectedUser.status ||
+          updated.selectedPetId !== selectedUser.selectedPetId
+        ) {
+          setSelectedUser(updated);
+        }
+      }
+    }
+  }, [users, selectedUser]);
 
   // Reset showReassignForm and fetch pet details when selectedUser changes
   useEffect(() => {
     setShowReassignForm(false);
+    setSelectedUserPet(null); // Clear immediately to prevent showing stale pet details from previous user
+
     if (!selectedUser) {
-      setSelectedUserPet(null);
       return;
     }
     const q = query(
