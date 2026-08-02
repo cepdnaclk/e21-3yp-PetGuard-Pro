@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, where } from 'firebase/firestore';
 import { ref, set } from 'firebase/database';
 import { firestore, rtdb } from '../firebase';
-import { Search, UserCheck, UserX, Trash2, PlusCircle, Info, X, Package } from 'lucide-react';
+import { Search, UserCheck, UserX, Trash2, PlusCircle, Info, X, Package, ShieldAlert, CheckCircle } from 'lucide-react';
 
 interface User {
   id: string;
@@ -27,6 +27,25 @@ export default function UsersTab() {
   // Custom states for pet display and reassignment toggling
   const [selectedUserPet, setSelectedUserPet] = useState<any | null>(null);
   const [showReassignForm, setShowReassignForm] = useState(false);
+
+  // Custom Allocation Confirmation Modal State
+  const [allocationConfirmModal, setAllocationConfirmModal] = useState<{
+    isOpen: boolean;
+    petId: string;
+  } | null>(null);
+  const [confirmInputVal, setConfirmInputVal] = useState('');
+  const [confirmModalError, setConfirmModalError] = useState<string | null>(null);
+
+  // Themed Alert Modal State
+  const [alertModal, setAlertModal] = useState<{
+    title: string;
+    body: string;
+    type: 'success' | 'error' | 'info';
+  } | null>(null);
+
+  const showAlert = (title: string, body: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setAlertModal({ title, body, type });
+  };
 
   // Available Harness Stock selection modal states
   const [availableStock, setAvailableStock] = useState<any[]>([]);
@@ -61,22 +80,35 @@ export default function UsersTab() {
         .map((d) => ({ id: d.id, ...d.data() } as User))
         .filter((u) => u.status !== 'not_varified');
       setUsers(list);
-
-      // Auto update selected user details if open
-      if (selectedUser) {
-        const updated = list.find((u) => u.id === selectedUser.id);
-        if (updated) setSelectedUser(updated);
-      }
     });
 
     return () => unsubscribe();
-  }, [selectedUser]);
+  }, []);
+
+  // Auto update selected user details if open and details changed
+  useEffect(() => {
+    if (selectedUser) {
+      const updated = users.find((u) => u.id === selectedUser.id);
+      if (updated) {
+        if (
+          updated.name !== selectedUser.name ||
+          updated.email !== selectedUser.email ||
+          updated.phone !== selectedUser.phone ||
+          updated.status !== selectedUser.status ||
+          updated.selectedPetId !== selectedUser.selectedPetId
+        ) {
+          setSelectedUser(updated);
+        }
+      }
+    }
+  }, [users, selectedUser]);
 
   // Reset showReassignForm and fetch pet details when selectedUser changes
   useEffect(() => {
     setShowReassignForm(false);
+    setSelectedUserPet(null); // Clear immediately to prevent showing stale pet details from previous user
+
     if (!selectedUser) {
-      setSelectedUserPet(null);
       return;
     }
     const q = query(
@@ -103,7 +135,7 @@ export default function UsersTab() {
       const userRef = doc(firestore, 'users', user.id);
       await updateDoc(userRef, { status: newStatus });
     } catch (e) {
-      alert(`Error updating user status: ${e}`);
+      showAlert('Error', `Error updating user status: ${e}`, 'error');
     }
   };
 
@@ -112,41 +144,51 @@ export default function UsersTab() {
       return;
     }
     try {
+      // Release harness stock status if assigned
+      if (user.selectedPetId) {
+        try {
+          const stockRef = doc(firestore, 'stock', user.selectedPetId);
+          await updateDoc(stockRef, { status: 'available' });
+        } catch (e) {
+          console.error("Error releasing harness stock status on user deletion:", e);
+        }
+      }
+
       const userRef = doc(firestore, 'users', user.id);
       await deleteDoc(userRef);
       if (selectedUser?.id === user.id) {
         setSelectedUser(null);
       }
     } catch (e) {
-      alert(`Error deleting user: ${e}`);
+      showAlert('Error', `Error deleting user: ${e}`, 'error');
     }
   };
 
-  const handleAllocateHarness = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleReleaseHarness = async () => {
+    if (!selectedUser || !selectedUser.selectedPetId) return;
+    const petId = selectedUser.selectedPetId;
+
+    if (!window.confirm(`Are you sure you want to release harness "${petId}" from ${selectedUser.name || 'this user'}?`)) {
+      return;
+    }
+
+    try {
+      // 1. Release harness status in Firestore (set back to 'available')
+      const stockRef = doc(firestore, 'stock', petId);
+      await updateDoc(stockRef, { status: 'available' });
+
+      // 2. Update Firestore user doc to clear selectedPetId
+      const userRef = doc(firestore, 'users', selectedUser.id);
+      await updateDoc(userRef, { selectedPetId: null });
+
+      showAlert('Success', `Harness ID "${petId}" successfully released and marked as available in stock!`, 'success');
+    } catch (err: any) {
+      showAlert('Error', err.message || 'An error occurred during harness release', 'error');
+    }
+  };
+
+  const executeHarnessAllocation = async (petId: string) => {
     if (!selectedUser) return;
-    const petId = newPetId.trim();
-
-    if (!petId) {
-      setAllocationError('Please select a Harness Pet ID first.');
-      return;
-    }
-
-    if (petId === selectedUser.selectedPetId) {
-      setAllocationError('This is already the current assigned Harness Pet ID.');
-      return;
-    }
-
-    // Double confirmation prompt by asking the user to re-type the pet ID
-    const confirmId = window.prompt(`Please re-type the Harness Pet ID "${petId}" to confirm assignment:`);
-    if (confirmId === null) {
-      return; // Cancelled
-    }
-    if (confirmId.trim() !== petId) {
-      setAllocationError('Harness Pet ID confirmation did not match. Please try again.');
-      return;
-    }
-
     setAllocating(true);
     setAllocationError(null);
 
@@ -198,12 +240,47 @@ export default function UsersTab() {
       // Reset
       setNewPetId('');
       setShowReassignForm(false);
-      alert(`Harness ID "${petId}" successfully provisioned and linked to ${selectedUser.name}!`);
+      showAlert('Success', `Harness ID "${petId}" successfully provisioned and linked to ${selectedUser.name}!`, 'success');
     } catch (err: any) {
       setAllocationError(err.message || 'An error occurred during allocation');
     } finally {
       setAllocating(false);
     }
+  };
+
+  const handleAllocateHarness = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUser) return;
+    const petId = newPetId.trim();
+
+    if (!petId) {
+      setAllocationError('Please select a Harness Pet ID first.');
+      return;
+    }
+
+    if (petId === selectedUser.selectedPetId) {
+      setAllocationError('This is already the current assigned Harness Pet ID.');
+      return;
+    }
+
+    // Open custom confirmation modal
+    setConfirmInputVal('');
+    setConfirmModalError(null);
+    setAllocationConfirmModal({
+      isOpen: true,
+      petId: petId,
+    });
+  };
+
+  const handleConfirmAllocation = () => {
+    if (!allocationConfirmModal) return;
+    const petId = allocationConfirmModal.petId;
+    if (confirmInputVal.trim() !== petId) {
+      setConfirmModalError('Harness Pet ID confirmation did not match. Please try again.');
+      return;
+    }
+    setAllocationConfirmModal(null);
+    executeHarnessAllocation(petId);
   };
 
   const filteredUsers = users.filter((u) => {
@@ -412,6 +489,12 @@ export default function UsersTab() {
                     >
                       Change Harness (Assign another Pet ID)
                     </button>
+                    <button
+                      onClick={handleReleaseHarness}
+                      className="w-full py-2 bg-rose-50 hover:bg-rose-100/80 dark:bg-rose-950/20 dark:hover:bg-rose-900/30 text-rose-600 dark:text-rose-455 rounded-lg text-xs font-bold transition flex items-center justify-center border border-rose-200/30 dark:border-rose-900/50 mt-2"
+                    >
+                      Remove Harness Assignment (Release ID)
+                    </button>
                   </div>
                 ) : (
                   <>
@@ -601,6 +684,108 @@ export default function UsersTab() {
                     </div>
                   ))
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Allocation Confirmation Modal Overlay */}
+      {allocationConfirmModal?.isOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl flex flex-col space-y-4">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/50 pb-3">
+              <div className="flex items-center space-x-2 text-teal-600 dark:text-teal-400">
+                <ShieldAlert className="w-5 h-5" />
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Confirm Harness Assignment</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAllocationConfirmModal(null)}
+                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-750 dark:hover:text-slate-200 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Warning Message */}
+            <div className="text-xs text-slate-600 dark:text-slate-350 leading-relaxed bg-amber-50/50 dark:bg-amber-950/10 p-3.5 rounded-xl border border-amber-250/20 text-amber-800 dark:text-amber-300">
+              Please re-type the Harness Pet ID <strong className="font-mono text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-900 px-1.5 py-0.5 rounded border border-slate-200/50 dark:border-slate-800">"{allocationConfirmModal.petId}"</strong> to confirm assignment:
+            </div>
+
+            {/* Input Field */}
+            <div className="space-y-1.5">
+              <input
+                type="text"
+                placeholder="Type Pet ID here"
+                value={confirmInputVal}
+                onChange={(e) => {
+                  setConfirmInputVal(e.target.value);
+                  setConfirmModalError(null);
+                }}
+                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-800 dark:text-slate-100 outline-none focus:border-teal-500/50"
+              />
+              {confirmModalError && (
+                <p className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 mt-1">
+                  {confirmModalError}
+                </p>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-700/50">
+              <button
+                type="button"
+                onClick={() => setAllocationConfirmModal(null)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmAllocation}
+                className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl transition shadow-sm cursor-pointer"
+              >
+                Confirm Assignment
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Themed Alert Modal Overlay */}
+      {alertModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl max-w-sm w-full p-6 shadow-2xl flex flex-col space-y-4 text-center">
+            <div className={`mx-auto w-12 h-12 rounded-full flex items-center justify-center border ${
+              alertModal.type === 'success'
+                ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200/50 dark:border-emerald-900/50 text-emerald-600 dark:text-emerald-400'
+                : alertModal.type === 'error'
+                ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-200/50 dark:border-rose-900/50 text-rose-600 dark:text-rose-400'
+                : 'bg-teal-50 dark:bg-teal-950/20 border-teal-200/50 dark:border-teal-900/50 text-teal-600 dark:text-teal-400'
+            }`}>
+              {alertModal.type === 'success' ? (
+                <CheckCircle className="w-6 h-6" />
+              ) : alertModal.type === 'error' ? (
+                <ShieldAlert className="w-6 h-6" />
+              ) : (
+                <Info className="w-6 h-6" />
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">{alertModal.title}</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed whitespace-pre-wrap">{alertModal.body}</p>
+            </div>
+            <div className="flex justify-center pt-2">
+              <button
+                type="button"
+                onClick={() => setAlertModal(null)}
+                className="px-6 py-2 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
+              >
+                OK
+              </button>
             </div>
           </div>
         </div>

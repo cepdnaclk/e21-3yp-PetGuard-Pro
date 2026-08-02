@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
 import { ref, onValue, onChildChanged, onChildAdded, get } from 'firebase/database';
 import { firestore, rtdb } from '../firebase';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
-import { Users, ShieldAlert, Wifi, Activity, Terminal, Trash2, FileText } from 'lucide-react';
+import { Users, ShieldAlert, Wifi, Activity, Terminal, FileText } from 'lucide-react';
 
 interface SyncEvent {
   time: number;
@@ -127,18 +127,115 @@ export default function DashboardTab() {
   }, [syncEvents]);
 
   // Actions
-  const runDiagnosis = () => {
+  const runDiagnosis = async () => {
     setModalContent({
       title: 'Diagnostic Check',
-      body: 'Harness health, database ping, and messaging gateways checked. 0 errors detected.',
+      body: 'Running comprehensive diagnostic check on databases and telemetry mappings...',
     });
-  };
 
-  const clearCache = () => {
-    setModalContent({
-      title: 'Cache Status',
-      body: 'Harness tracking historical cache has been rebuilt successfully.',
-    });
+    try {
+      // Fetch users
+      const usersSnap = await getDocs(collection(firestore, 'users'));
+      const usersList: any[] = [];
+      usersSnap.forEach(d => usersList.push({ id: d.id, ...d.data() }));
+
+      // Fetch stock
+      const stockSnap = await getDocs(collection(firestore, 'stock'));
+      const stockList: any[] = [];
+      stockSnap.forEach(d => stockList.push({ id: d.id, ...d.data() }));
+
+      // Fetch active alerts
+      const alertsSnap = await getDocs(query(collection(firestore, 'alerts'), where('status', '==', 'Pending')));
+      const activeAlertsCount = alertsSnap.size;
+
+      // Fetch RTDB pets keys
+      let rtdbKeysCount = 0;
+      let rtdbActive = false;
+      try {
+        const petsSnapshot = await get(ref(rtdb, 'pets'));
+        if (petsSnapshot.exists()) {
+          rtdbKeysCount = Object.keys(petsSnapshot.val()).length;
+        }
+        rtdbActive = true;
+      } catch (err) {
+        console.error("RTDB Diagnostic ping failed:", err);
+      }
+
+      // Analyze integrity
+      const userAssignedPetIds = usersList
+        .map(u => u.selectedPetId)
+        .filter(Boolean) as string[];
+
+      const stockAssignedIds = stockList
+        .filter(item => item.status === 'assigned')
+        .map(item => item.deviceId || item.id) as string[];
+
+      const stockAvailableIds = stockList
+        .filter(item => item.status === 'available')
+        .map(item => item.deviceId || item.id) as string[];
+
+      // Discrepancy 1: Harness marked as assigned in stock, but no user points to it
+      const orphanedHarnesses = stockAssignedIds.filter(id => !userAssignedPetIds.includes(id));
+
+      // Discrepancy 2: User points to a harness, but it is not marked as assigned (e.g. available or missing)
+      const userHarnessMismatches = usersList.filter(u => {
+        if (!u.selectedPetId) return false;
+        const stockItem = stockList.find(item => (item.deviceId || item.id) === u.selectedPetId);
+        return !stockItem || stockItem.status !== 'assigned';
+      });
+
+      // Construct report
+      const lines = [
+        `=== DATABASE STATUS ===`,
+        `Firestore Connection: ACTIVE`,
+        `Realtime Database: ${rtdbActive ? 'ACTIVE' : 'OFFLINE'}`,
+        ``,
+        `=== METRIC SUMMARIES ===`,
+        `Total Registered Users: ${usersList.length}`,
+        `Total Harnesses in Stock: ${stockList.length}`,
+        `  - Available units: ${stockAvailableIds.length}`,
+        `  - Assigned units: ${stockAssignedIds.length}`,
+        `  - Under maintenance: ${stockList.filter(i => i.status === 'maintenance').length}`,
+        `  - Faulty units: ${stockList.filter(i => i.status === 'faulty').length}`,
+        `Unresolved System Alerts: ${activeAlertsCount}`,
+        `Realtime Telemetry Streams: ${rtdbKeysCount} active devices`,
+        ``,
+        `=== SYSTEM INTEGRITY CHECKS ===`,
+      ];
+
+      let errorsCount = 0;
+
+      if (orphanedHarnesses.length > 0) {
+        errorsCount += orphanedHarnesses.length;
+        lines.push(`⚠️ WARNING: ${orphanedHarnesses.length} harness(es) marked as 'assigned' in stock, but not linked to any user:`);
+        orphanedHarnesses.forEach(id => lines.push(`  - ID: ${id}`));
+      }
+
+      if (userHarnessMismatches.length > 0) {
+        errorsCount += userHarnessMismatches.length;
+        lines.push(`⚠️ WARNING: ${userHarnessMismatches.length} user(s) point to unassigned or missing harness:`);
+        userHarnessMismatches.forEach(u => {
+          lines.push(`  - User: ${u.name || u.email || u.id} -> Harness ID: ${u.selectedPetId}`);
+        });
+      }
+
+      if (errorsCount === 0) {
+        lines.push(`✅ Integrity check passed: 0 allocation discrepancies detected.`);
+      } else {
+        lines.push(``);
+        lines.push(`❌ Total discrepancies detected: ${errorsCount}`);
+      }
+
+      setModalContent({
+        title: 'Diagnostic Check Result',
+        body: lines.join('\n'),
+      });
+    } catch (e: any) {
+      setModalContent({
+        title: 'Diagnostic Check Failed',
+        body: `Failed to execute system diagnostics:\n${e.message || e}`,
+      });
+    }
   };
 
   const getGatewayInfo = () => {
@@ -159,7 +256,7 @@ export default function DashboardTab() {
           const loc = val.current_location || val.location || {};
           const health = val.health || {};
           const battery = val.battery || {};
-          
+
           return {
             id,
             activityType: (current.activity_type || 'Unknown').toUpperCase(),
@@ -179,7 +276,10 @@ export default function DashboardTab() {
       }
     } catch (e) {
       console.error(e);
-      alert('Error fetching database report logs.');
+      setModalContent({
+        title: 'Error',
+        body: 'Error fetching database report logs.',
+      });
     }
   };
 
@@ -220,7 +320,7 @@ export default function DashboardTab() {
           </div>
           <div className="mt-4">
             <span className="text-3xl font-extrabold text-slate-800 dark:text-slate-100">{stats.harnesses}</span>
-            <p className="text-xs text-slate-400 dark:text-slate-400 mt-1">Smart Harnesses</p>
+            <p className="text-xs text-slate-400 dark:text-slate-400 mt-1">Total Harnesses</p>
           </div>
         </div>
 
@@ -266,8 +366,8 @@ export default function DashboardTab() {
             <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorPackets" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#00897B" stopOpacity={0.2}/>
-                  <stop offset="95%" stopColor="#00897B" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#00897B" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#00897B" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="#94a3b8" />
@@ -287,15 +387,10 @@ export default function DashboardTab() {
       {/* System Actions card */}
       <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-5 shadow-sm">
         <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-4">System Diagnostic Actions</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <button onClick={runDiagnosis} className="flex flex-col items-center justify-center p-4 bg-teal-500/10 hover:bg-teal-500/20 text-teal-700 dark:text-teal-300 border border-teal-500/20 rounded-xl transition">
             <Terminal className="w-5 h-5 mb-2" />
             <span className="text-sm font-semibold">Diagnosis Check</span>
-          </button>
-
-          <button onClick={clearCache} className="flex flex-col items-center justify-center p-4 bg-orange-500/10 hover:bg-orange-500/20 text-orange-700 dark:text-orange-300 border border-orange-500/20 rounded-xl transition">
-            <Trash2 className="w-5 h-5 mb-2" />
-            <span className="text-sm font-semibold">Clear Cache</span>
           </button>
 
           <button onClick={getGatewayInfo} className="flex flex-col items-center justify-center p-4 bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-500/20 rounded-xl transition">
@@ -332,7 +427,7 @@ export default function DashboardTab() {
         return (
           <div id="print-overlay" className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
             <div id="printable-area" className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl max-w-4xl w-full p-0 shadow-xl overflow-hidden my-8">
-              
+
               {/* Report Header Banner */}
               <div className="bg-gradient-to-r from-teal-600 to-emerald-600 text-white p-6 relative">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -391,10 +486,10 @@ export default function DashboardTab() {
                       ) : (
                         reportData.map((item) => {
                           const batVal = parseInt(item.battery);
-                          const batteryColor = batVal > 50 
-                            ? 'bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400' 
-                            : batVal > 20 
-                              ? 'bg-orange-100 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400' 
+                          const batteryColor = batVal > 50
+                            ? 'bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400'
+                            : batVal > 20
+                              ? 'bg-orange-100 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400'
                               : 'bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-400';
 
                           return (

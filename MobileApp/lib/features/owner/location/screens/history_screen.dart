@@ -2016,16 +2016,31 @@ class _PdfReportBuilder {
 
   pw.Widget _card(String label, String value, pw.Font bold, pw.Font base) =>
       pw.Expanded(
-        child: pw.Container(
-          decoration: pw.BoxDecoration(
-            color: _greyLight,
-            borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
-          ),
-          child: pw.Row(
-            crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-            children: [
-              // Left accent stripe — separate container, no borderRadius conflict
-              pw.Container(
+        child: pw.Stack(
+          children: [
+            pw.Container(
+              decoration: pw.BoxDecoration(
+                color: _greyLight,
+                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+              ),
+              padding: const pw.EdgeInsets.only(left: 15, right: 12, top: 12, bottom: 12),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(value,
+                      style: pw.TextStyle(
+                          font: bold, fontSize: 14, color: _dark)),
+                  pw.Text(label,
+                      style: pw.TextStyle(
+                          font: base, fontSize: 9, color: _grey)),
+                ],
+              ),
+            ),
+            pw.Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              child: pw.Container(
                 width: 3,
                 decoration: const pw.BoxDecoration(
                   color: _teal,
@@ -2035,24 +2050,8 @@ class _PdfReportBuilder {
                   ),
                 ),
               ),
-              pw.Expanded(
-                child: pw.Padding(
-                  padding: const pw.EdgeInsets.all(12),
-                  child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text(value,
-                          style: pw.TextStyle(
-                              font: bold, fontSize: 14, color: _dark)),
-                      pw.Text(label,
-                          style: pw.TextStyle(
-                              font: base, fontSize: 9, color: _grey)),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
 
