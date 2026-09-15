@@ -463,9 +463,43 @@ String _formatSelectedDay(DateTime day) {
   return '${day.day}/${day.month}/${day.year}';
 }
 
+/// Computes a [minY, maxY] range that always fits the actual data, padded a
+/// bit so the line doesn't touch the top/bottom edge. Falls back to
+/// [fallbackMin]/[fallbackMax] when there are no values to measure.
+List<double> _autoRange(
+  Iterable<double> values, {
+  required double fallbackMin,
+  required double fallbackMax,
+  double paddingFraction = 0.1,
+  double minSpan = 1,
+}) {
+  if (values.isEmpty) return [fallbackMin, fallbackMax];
+
+  final minVal = values.reduce((a, b) => a < b ? a : b);
+  final maxVal = values.reduce((a, b) => a > b ? a : b);
+  final span = (maxVal - minVal).abs();
+  final effectiveSpan = span < minSpan ? minSpan : span;
+  final padding = effectiveSpan * paddingFraction;
+
+  return [minVal - padding, maxVal + padding];
+}
+
 Widget _buildCharts(List<HealthVitals> history) {
   final validRespHistory = history.where((v) => v.respiratoryRate > 0).toList();
   final validTempHistory = history.where((v) => v.temperature > 30).toList(); // offset applied via calibratedTemperature below
+
+  final respRange = _autoRange(
+    validRespHistory.map((v) => v.respiratoryRate.toDouble()),
+    fallbackMin: 5,
+    fallbackMax: 60,
+    minSpan: 10,
+  );
+  final tempRange = _autoRange(
+    validTempHistory.map((v) => v.calibratedTemperature),
+    fallbackMin: 36,
+    fallbackMax: 42,
+    minSpan: 1,
+  );
 
   return Column(
     children: [
@@ -475,8 +509,8 @@ Widget _buildCharts(List<HealthVitals> history) {
         spots: validRespHistory.asMap().entries.map((e) =>
           FlSpot(e.key.toDouble(), e.value.respiratoryRate.toDouble())).toList(),
         color: Colors.teal,
-        minY: 5,
-        maxY: 60,
+        minY: respRange[0],
+        maxY: respRange[1],
         history: validRespHistory,
       ),
       const SizedBox(height: 16),
@@ -487,8 +521,8 @@ Widget _buildCharts(List<HealthVitals> history) {
         spots: validTempHistory.asMap().entries.map((e) =>
           FlSpot(e.key.toDouble(), e.value.calibratedTemperature)).toList(),
         color: Colors.orange,
-        minY: 36,
-        maxY: 42,
+        minY: tempRange[0],
+        maxY: tempRange[1],
         history: validTempHistory,
       ),
     ],
