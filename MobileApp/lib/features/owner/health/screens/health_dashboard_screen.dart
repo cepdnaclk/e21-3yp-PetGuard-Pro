@@ -1,8 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/health_provider.dart';
 import '../models/health_vitals.dart';
 import 'package:fl_chart/fl_chart.dart';
+
+Future<void> _launchLearnMoreUrl(BuildContext context, String url) async {
+  final uri = Uri.parse(url);
+  final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+  if (!launched && context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Could not open $url')),
+    );
+  }
+}
 
 class HealthDashboardScreen extends ConsumerWidget {
   const HealthDashboardScreen({super.key});
@@ -129,6 +140,7 @@ Widget _buildVitalsCards(BuildContext context, HealthVitals vitals, WidgetRef re
                   'Respiratory rate is how many breaths your dog takes per minute at rest. '
                   'It is a key indicator of cardiovascular and lung health. '
                   'An elevated resting rate can signal pain, fever, heart disease, or respiratory distress.',
+              learnMoreUrl: 'https://www.msdvetmanual.com/reference-values-and-conversion-tables/reference-guides/resting-respiratory-rates',
               value: vitals.respiratoryRate > 0 ? vitals.respiratoryRate.toString() : '--',
               unit: 'br/min',
               icon: Icons.air,
@@ -172,6 +184,7 @@ Widget _buildVitalsCards(BuildContext context, HealthVitals vitals, WidgetRef re
   VitalStatus? status,
   String? normalRange,
   String? description,
+  String? learnMoreUrl,
   bool fullWidth = false,
 }) {
   final statusColor = switch (status) {
@@ -226,9 +239,30 @@ Widget _buildVitalsCards(BuildContext context, HealthVitals vitals, WidgetRef re
                           title,
                           style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
-                        content: Text(
-                          description,
-                          style: const TextStyle(fontSize: 14, height: 1.5),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              description,
+                              style: const TextStyle(fontSize: 14, height: 1.5),
+                            ),
+                            if (learnMoreUrl != null) ...[
+                              const SizedBox(height: 12),
+                              InkWell(
+                                onTap: () => _launchLearnMoreUrl(context, learnMoreUrl),
+                                child: Text(
+                                  'Learn more',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: _primaryColor,
+                                    fontWeight: FontWeight.w600,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                         actions: [
                           TextButton(
