@@ -15,6 +15,19 @@ Future<void> _launchLearnMoreUrl(BuildContext context, String url) async {
   }
 }
 
+enum VitalTrend { up, down, steady }
+
+/// Compares [current] to [previous] and returns the direction of change.
+/// Returns null when there's no previous reading to compare against.
+/// [epsilon] absorbs sensor noise so tiny fluctuations don't flicker.
+VitalTrend? _trendFor(double? current, double? previous, {double epsilon = 0}) {
+  if (current == null || previous == null) return null;
+  final diff = current - previous;
+  if (diff > epsilon) return VitalTrend.up;
+  if (diff < -epsilon) return VitalTrend.down;
+  return VitalTrend.steady;
+}
+
 class HealthDashboardScreen extends ConsumerWidget {
   const HealthDashboardScreen({super.key});
 
@@ -22,7 +35,7 @@ class HealthDashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final healthAsync = ref.watch(healthVitalsStreamProvider);
+    final healthAsync = ref.watch(vitalsWithTrendProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -34,6 +47,7 @@ class HealthDashboardScreen extends ConsumerWidget {
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(healthVitalsStreamProvider);
+          ref.invalidate(vitalsWithTrendProvider);
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -56,7 +70,7 @@ class HealthDashboardScreen extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: healthAsync.when(
-                  data: (vitals) => _buildVitalsCards(context, vitals, ref),
+                  data: (vitalsWithTrend) => _buildVitalsCards(context, vitalsWithTrend, ref),
                   loading: () => _buildLoadingCard(),
                   error: (error, _) => _buildErrorCard(error),
                 ),
@@ -125,8 +139,26 @@ class HealthDashboardScreen extends ConsumerWidget {
 
   // ───────────────── VITALS ─────────────────
 
-Widget _buildVitalsCards(BuildContext context, HealthVitals vitals, WidgetRef ref) {
+Widget _buildVitalsCards(BuildContext context, VitalsWithTrend vitalsWithTrend, WidgetRef ref) {
   final thresholds = ref.watch(vitalThresholdsProvider);
+  final vitals = vitalsWithTrend.current;
+  final previous = vitalsWithTrend.previous;
+
+  final respTrend = (vitals.respiratoryRate > 0 && (previous?.respiratoryRate ?? 0) > 0)
+      ? _trendFor(
+          vitals.respiratoryRate.toDouble(),
+          previous!.respiratoryRate.toDouble(),
+        )
+      : null;
+
+  final tempTrend = (vitals.temperature > 0 && (previous?.temperature ?? 0) > 0)
+      ? _trendFor(
+          vitals.calibratedTemperature,
+          previous!.calibratedTemperature,
+          epsilon: 0.05, // ignores noise below the displayed 0.1°C precision
+        )
+      : null;
+
   return Column(
     children: [
       // ── Row 1: Respiratory Rate + Temperature ──
@@ -149,6 +181,7 @@ Widget _buildVitalsCards(BuildContext context, HealthVitals vitals, WidgetRef re
                   ? thresholds.respiratoryStatus(vitals.respiratoryRate)
                   : null,
               normalRange: '${thresholds.respNormalMin}–${thresholds.respNormalMax}',
+              trend: respTrend,
             ),
           ),
           const SizedBox(width: 12),
@@ -166,6 +199,7 @@ Widget _buildVitalsCards(BuildContext context, HealthVitals vitals, WidgetRef re
                   ? thresholds.temperatureStatus(vitals.calibratedTemperature)
                   : null,
               normalRange: '${thresholds.tempNormalMin}–${thresholds.tempNormalMax}°C',
+              trend: tempTrend,
             ),
           ),
         ],
@@ -185,6 +219,7 @@ Widget _buildVitalsCards(BuildContext context, HealthVitals vitals, WidgetRef re
   String? normalRange,
   String? description,
   String? learnMoreUrl,
+  VitalTrend? trend,
   bool fullWidth = false,
 }) {
   final statusColor = switch (status) {
@@ -287,26 +322,51 @@ Widget _buildVitalsCards(BuildContext context, HealthVitals vitals, WidgetRef re
             fit: BoxFit.scaleDown,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: statusColor,
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      value,
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: statusColor,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      unit,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                        color: statusColor,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 4),
-                Text(
-                  unit,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                    color: statusColor,
+                if (trend != null) ...[
+                  const SizedBox(width: 4),
+                  Tooltip(
+                    message: switch (trend) {
+                      VitalTrend.up => 'Up from previous reading',
+                      VitalTrend.down => 'Down from previous reading',
+                      VitalTrend.steady => 'Same as previous reading',
+                    },
+                    child: Icon(
+                      switch (trend) {
+                        VitalTrend.up => Icons.arrow_upward_rounded,
+                        VitalTrend.down => Icons.arrow_downward_rounded,
+                        VitalTrend.steady => Icons.trending_flat_rounded,
+                      },
+                      size: 16,
+                      color: Colors.grey.shade500,
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),

@@ -24,6 +24,25 @@ final healthVitalsStreamProvider = StreamProvider<HealthVitals>((ref) {
   return healthService.getHealthVitalsStream();
 });
 
+// ── Live vitals + trend (current vs. previous reading) ─────────────────────
+
+class VitalsWithTrend {
+  final HealthVitals current;
+  final HealthVitals? previous;
+
+  const VitalsWithTrend({required this.current, this.previous});
+}
+
+final vitalsWithTrendProvider = StreamProvider<VitalsWithTrend>((ref) {
+  final healthService = ref.watch(healthServiceProvider);
+  HealthVitals? previous;
+  return healthService.getHealthVitalsStream().map((vitals) {
+    final withTrend = VitalsWithTrend(current: vitals, previous: previous);
+    previous = vitals;
+    return withTrend;
+  });
+});
+
 // ── History ───────────────────────────────────────────────────────────────────
 
 final selectedDayProvider = StateProvider<DateTime>((ref) => DateTime.now());
