@@ -8,6 +8,7 @@ import '../services/health_service.dart';
 import '../models/health_vitals.dart';
 import '../models/dog_profile.dart';
 import '../models/vital_thresholds.dart';
+import '../models/respiratory_alert_settings.dart';
 import '../../location/providers/alerts_provider.dart';
 import '../../location/services/notification_service.dart';
 
@@ -115,6 +116,14 @@ final vitalThresholdsProvider = Provider<VitalThresholds>((ref) {
   return VitalThresholds.fromProfile(profile);
 });
 
+// ── Custom respiratory rate alert settings ──────────────────────────────────
+
+final respiratoryAlertSettingsProvider =
+    StreamProvider<RespiratoryAlertSettings>((ref) {
+  final healthService = ref.watch(healthServiceProvider);
+  return healthService.getRespiratoryAlertSettingsStream();
+});
+
 // ── Health monitor — fires OS notifications AND in-app alerts ─────────────────
 // This is the equivalent of geofenceMonitorProvider for the health feature.
 // It must be ref.watch()ed in UserDashboardScreen so it stays alive
@@ -124,9 +133,16 @@ final vitalThresholdsProvider = Provider<VitalThresholds>((ref) {
 final healthAlertMonitorProvider = Provider<void>((ref) {
   final vitalsAsync = ref.watch(healthVitalsStreamProvider);
   final thresholds = ref.watch(vitalThresholdsProvider);
+  final customRespSettings =
+      ref.watch(respiratoryAlertSettingsProvider).valueOrNull ??
+          RespiratoryAlertSettings.disabled;
   final notificationService = NotificationService();
+  final healthService = ref.watch(healthServiceProvider);
 
   vitalsAsync.whenData((vitals) {
+    // ── Custom respiratory-rate alert (user-set limits, sustained duration) ─
+    healthService.checkCustomRespiratoryAlert(vitals, customRespSettings);
+
     // ── Respiratory rate alerts ───────────────────────────────────────────
     if (vitals.respiratoryRate > 0) {
       final respStatus = thresholds.respiratoryStatus(vitals.respiratoryRate);

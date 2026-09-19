@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../providers/health_provider.dart';
 import '../models/health_vitals.dart';
+import '../models/respiratory_alert_settings.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 Future<void> _launchLearnMoreUrl(BuildContext context, String url) async {
@@ -157,6 +158,9 @@ Widget _buildVitalsCards(BuildContext context, VitalsWithTrend vitalsWithTrend, 
   final thresholds = ref.watch(vitalThresholdsProvider);
   final vitals = vitalsWithTrend.current;
   final previous = vitalsWithTrend.previous;
+  final respAlertSettings =
+      ref.watch(respiratoryAlertSettingsProvider).valueOrNull ??
+          RespiratoryAlertSettings.disabled;
 
   final now = ref.watch(nowTickerProvider).valueOrNull ?? DateTime.now();
   final elapsed = now.difference(vitals.timestamp);
@@ -228,6 +232,11 @@ Widget _buildVitalsCards(BuildContext context, VitalsWithTrend vitalsWithTrend, 
               normalRange: '${thresholds.respNormalMin}–${thresholds.respNormalMax}',
               trend: respTrend,
               muted: isStale,
+              alertSettingsEnabled: respAlertSettings.enabled,
+              onAlertSettingsTap: () => showDialog(
+                context: context,
+                builder: (_) => _RespiratoryAlertSettingsDialog(initial: respAlertSettings),
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -269,6 +278,8 @@ Widget _buildVitalsCards(BuildContext context, VitalsWithTrend vitalsWithTrend, 
   VitalTrend? trend,
   bool muted = false,
   bool fullWidth = false,
+  VoidCallback? onAlertSettingsTap,
+  bool alertSettingsEnabled = false,
 }) {
   final statusColor = switch (status) {
     VitalStatus.normal  => Colors.green,
@@ -360,6 +371,26 @@ Widget _buildVitalsCards(BuildContext context, VitalsWithTrend vitalsWithTrend, 
                     Icons.help_outline_rounded,
                     size: 15,
                     color: Colors.grey.shade400,
+                  ),
+                ),
+              ],
+              if (onAlertSettingsTap != null) ...[
+                const SizedBox(width: 4),
+                GestureDetector(
+                  onTap: onAlertSettingsTap,
+                  child: Tooltip(
+                    message: alertSettingsEnabled
+                        ? 'Custom alerts on — tap to edit'
+                        : 'Set custom alert limits',
+                    child: Icon(
+                      alertSettingsEnabled
+                          ? Icons.notifications_active_rounded
+                          : Icons.notifications_none_rounded,
+                      size: 16,
+                      color: alertSettingsEnabled
+                          ? _primaryColor
+                          : Colors.grey.shade400,
+                    ),
                   ),
                 ),
               ],
@@ -875,4 +906,197 @@ Widget _buildNoDataCard() {
     ),
   );
 }
+
+}
+// ───────────────── Respiratory rate custom alert settings ─────────────────
+
+class _RespiratoryAlertSettingsDialog extends ConsumerStatefulWidget {
+  final RespiratoryAlertSettings initial;
+
+  const _RespiratoryAlertSettingsDialog({required this.initial});
+
+  @override
+  ConsumerState<_RespiratoryAlertSettingsDialog> createState() =>
+      _RespiratoryAlertSettingsDialogState();
+}
+
+class _RespiratoryAlertSettingsDialogState
+    extends ConsumerState<_RespiratoryAlertSettingsDialog> {
+  static const Color _primaryColor = Color.fromARGB(255, 0, 150, 136);
+
+  late bool _enabled;
+  late final TextEditingController _minController;
+  late final TextEditingController _maxController;
+  late int _sustainedMinutes;
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _enabled = widget.initial.enabled;
+    _minController =
+        TextEditingController(text: widget.initial.minRate?.toString() ?? '');
+    _maxController =
+        TextEditingController(text: widget.initial.maxRate?.toString() ?? '');
+    _sustainedMinutes = widget.initial.sustainedMinutes;
+  }
+
+  @override
+  void dispose() {
+    _minController.dispose();
+    _maxController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Text(
+        'Respiratory Rate Alerts',
+        style: TextStyle(fontWeight: FontWeight.w700),
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text(
+                'Enable custom alerts',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+              value: _enabled,
+              activeColor: _primaryColor,
+              onChanged: (v) => setState(() => _enabled = v),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _minController,
+                    enabled: _enabled,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Min (br/min)',
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _maxController,
+                    enabled: _enabled,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Max (br/min)',
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Leave a field blank to skip that limit.',
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Notify if sustained for $_sustainedMinutes min',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: _enabled ? Colors.black87 : Colors.grey.shade400,
+              ),
+            ),
+            Slider(
+              value: _sustainedMinutes.toDouble(),
+              min: 1,
+              max: 30,
+              divisions: 29,
+              activeColor: _primaryColor,
+              label: '$_sustainedMinutes min',
+              onChanged: _enabled
+                  ? (v) => setState(() => _sustainedMinutes = v.round())
+                  : null,
+            ),
+            Text(
+              'A notification is sent only once the rate stays outside your '
+              'limit continuously for this long — a brief spike won\'t trigger it.',
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                _error!,
+                style: const TextStyle(fontSize: 12, color: Colors.red),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: _saving ? null : _save,
+          style: TextButton.styleFrom(foregroundColor: _primaryColor),
+          child: _saving
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Save'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _save() async {
+    final min = int.tryParse(_minController.text.trim());
+    final max = int.tryParse(_maxController.text.trim());
+
+    if (_enabled && min == null && max == null) {
+      setState(() => _error = 'Set at least a min or max limit, or turn alerts off.');
+      return;
+    }
+    if (min != null && max != null && min >= max) {
+      setState(() => _error = 'Min must be less than max.');
+      return;
+    }
+
+    setState(() {
+      _error = null;
+      _saving = true;
+    });
+
+    final settings = RespiratoryAlertSettings(
+      enabled: _enabled,
+      minRate: min,
+      maxRate: max,
+      sustainedMinutes: _sustainedMinutes,
+    );
+
+    try {
+      await ref.read(healthServiceProvider).saveRespiratoryAlertSettings(settings);
+      if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _error = 'Could not save: $e';
+        });
+      }
+    }
+  }
 }
