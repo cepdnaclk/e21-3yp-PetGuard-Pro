@@ -43,6 +43,13 @@ final vitalsWithTrendProvider = StreamProvider<VitalsWithTrend>((ref) {
   });
 });
 
+// ── Ticker — periodic rebuild trigger for "updated Xs ago" labels and
+// staleness checks, so the UI updates even when no new reading arrives. ────
+
+final nowTickerProvider = StreamProvider.autoDispose<DateTime>((ref) {
+  return Stream<DateTime>.periodic(const Duration(seconds: 1), (_) => DateTime.now());
+});
+
 // ── History ───────────────────────────────────────────────────────────────────
 
 final selectedDayProvider = StateProvider<DateTime>((ref) => DateTime.now());

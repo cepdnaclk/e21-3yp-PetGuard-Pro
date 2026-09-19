@@ -17,6 +17,20 @@ Future<void> _launchLearnMoreUrl(BuildContext context, String url) async {
 
 enum VitalTrend { up, down, steady }
 
+/// How long a reading can go without an update before we treat the sensor
+/// as offline/disconnected rather than just showing the last known value.
+const _staleAfter = Duration(minutes: 2);
+
+/// Formats a duration as a short relative-time string ("just now", "12s ago",
+/// "3m ago", "2h ago", "1d ago") for "last updated" labels.
+String _formatElapsed(Duration d) {
+  if (d.inSeconds < 5) return 'just now';
+  if (d.inSeconds < 60) return '${d.inSeconds}s ago';
+  if (d.inMinutes < 60) return '${d.inMinutes}m ago';
+  if (d.inHours < 24) return '${d.inHours}h ago';
+  return '${d.inDays}d ago';
+}
+
 /// Compares [current] to [previous] and returns the direction of change.
 /// Returns null when there's no previous reading to compare against.
 /// [epsilon] absorbs sensor noise so tiny fluctuations don't flicker.
@@ -144,6 +158,10 @@ Widget _buildVitalsCards(BuildContext context, VitalsWithTrend vitalsWithTrend, 
   final vitals = vitalsWithTrend.current;
   final previous = vitalsWithTrend.previous;
 
+  final now = ref.watch(nowTickerProvider).valueOrNull ?? DateTime.now();
+  final elapsed = now.difference(vitals.timestamp);
+  final isStale = elapsed > _staleAfter;
+
   final respTrend = (vitals.respiratoryRate > 0 && (previous?.respiratoryRate ?? 0) > 0)
       ? _trendFor(
           vitals.respiratoryRate.toDouble(),
@@ -161,6 +179,33 @@ Widget _buildVitalsCards(BuildContext context, VitalsWithTrend vitalsWithTrend, 
 
   return Column(
     children: [
+      // ── "Last updated" / staleness indicator ──
+      Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            isStale ? Icons.cloud_off_rounded : Icons.circle,
+            size: isStale ? 14 : 8,
+            color: isStale ? Colors.red.shade400 : Colors.green.shade400,
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              isStale
+                  ? 'No new reading in ${_formatElapsed(elapsed)} — check sensor connection'
+                  : 'Updated ${_formatElapsed(elapsed)}',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isStale ? FontWeight.w600 : FontWeight.normal,
+                color: isStale ? Colors.red.shade600 : Colors.grey.shade500,
+              ),
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 10),
+
       // ── Row 1: Respiratory Rate + Temperature ──
       Row(
         children: [
@@ -182,6 +227,7 @@ Widget _buildVitalsCards(BuildContext context, VitalsWithTrend vitalsWithTrend, 
                   : null,
               normalRange: '${thresholds.respNormalMin}–${thresholds.respNormalMax}',
               trend: respTrend,
+              muted: isStale,
             ),
           ),
           const SizedBox(width: 12),
@@ -200,6 +246,7 @@ Widget _buildVitalsCards(BuildContext context, VitalsWithTrend vitalsWithTrend, 
                   : null,
               normalRange: '${thresholds.tempNormalMin}–${thresholds.tempNormalMax}°C',
               trend: tempTrend,
+              muted: isStale,
             ),
           ),
         ],
@@ -220,6 +267,7 @@ Widget _buildVitalsCards(BuildContext context, VitalsWithTrend vitalsWithTrend, 
   String? description,
   String? learnMoreUrl,
   VitalTrend? trend,
+  bool muted = false,
   bool fullWidth = false,
 }) {
   final statusColor = switch (status) {
@@ -402,17 +450,27 @@ Widget _buildVitalsCards(BuildContext context, VitalsWithTrend vitalsWithTrend, 
       ),
     ),
   );
-  return fullWidth ? card : card;
+  return Opacity(opacity: muted ? 0.55 : 1, child: fullWidth ? card : card);
 }
 
   // ───────────────── SUPPORTING UI ─────────────────
 
   Widget _buildLoadingCard() {
-    return const Card(
+    return Card(
       child: Padding(
-        padding: EdgeInsets.all(48),
+        padding: const EdgeInsets.all(48),
         child: Center(
-          child: CircularProgressIndicator(color: _primaryColor),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(color: _primaryColor),
+              const SizedBox(height: 16),
+              Text(
+                'Connecting to sensor…',
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+              ),
+            ],
+          ),
         ),
       ),
     );
