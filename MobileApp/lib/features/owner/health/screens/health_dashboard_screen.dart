@@ -441,25 +441,72 @@ Widget _buildTrendsSection(WidgetRef ref) {
   final selectedDay = ref.watch(selectedDayProvider);
   final historyAsync = ref.watch(healthHistoryProvider);
 
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final earliestAllowedDay = today.subtract(const Duration(days: 90));
+  final canGoNext = !_isSameDay(selectedDay, today) && selectedDay.isBefore(today);
+  final canGoPrev = !_isSameDay(selectedDay, earliestAllowedDay) &&
+      selectedDay.isAfter(earliestAllowedDay);
+
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            _formatSelectedDay(selectedDay),
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+          IconButton(
+            onPressed: canGoPrev
+                ? () => ref.read(selectedDayProvider.notifier).state =
+                    DateTime(selectedDay.year, selectedDay.month, selectedDay.day)
+                        .subtract(const Duration(days: 1))
+                : null,
+            icon: const Icon(Icons.chevron_left),
+            tooltip: 'Previous day',
+            color: _primaryColor,
+            disabledColor: Colors.grey.shade300,
           ),
-          TextButton.icon(
+          Expanded(
+            child: Center(
+              child: Text(
+                _formatSelectedDay(selectedDay),
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: canGoNext
+                ? () => ref.read(selectedDayProvider.notifier).state =
+                    DateTime(selectedDay.year, selectedDay.month, selectedDay.day)
+                        .add(const Duration(days: 1))
+                : null,
+            icon: const Icon(Icons.chevron_right),
+            tooltip: 'Next day',
+            color: _primaryColor,
+            disabledColor: Colors.grey.shade300,
+          ),
+          IconButton(
             onPressed: () => _pickDay(ref),
-            icon: const Icon(Icons.calendar_today, size: 16),
-            label: const Text('Change day'),
-            style: TextButton.styleFrom(foregroundColor: _primaryColor),
+            icon: const Icon(Icons.calendar_today, size: 18),
+            tooltip: 'Pick a day',
+            color: _primaryColor,
           ),
         ],
       ),
       const SizedBox(height: 8),
+
+      SizedBox(
+        height: 56,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: 7,
+          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          itemBuilder: (context, index) {
+            // Oldest to newest, ending in today.
+            final day = today.subtract(Duration(days: 6 - index));
+            return _buildDayChip(ref, day: day, selectedDay: selectedDay);
+          },
+        ),
+      ),
+      const SizedBox(height: 12),
 
       historyAsync.when(
         data: (history) => history.isEmpty
@@ -476,6 +523,72 @@ Widget _buildTrendsSection(WidgetRef ref) {
     ],
   );
 }
+
+Widget _buildDayChip(WidgetRef ref, {required DateTime day, required DateTime selectedDay}) {
+  final isSelected = _isSameDay(day, selectedDay);
+  final hasAlertAsync = ref.watch(dayHasAlertProvider(day));
+  final hasAlert = hasAlertAsync.valueOrNull ?? false;
+
+  const weekdayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  return GestureDetector(
+    onTap: () => ref.read(selectedDayProvider.notifier).state = day,
+    child: Container(
+      width: 48,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: isSelected ? _primaryColor : Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                weekdayLabels[day.weekday - 1],
+                style: TextStyle(
+                  fontSize: 11,
+                  color: isSelected ? Colors.white70 : Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                day.day.toString(),
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? Colors.white : Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          if (hasAlert)
+            Positioned(
+              top: -2,
+              right: 2,
+              child: Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: Colors.redAccent,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isSelected ? _primaryColor : Colors.grey.shade100,
+                    width: 1.5,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    ),
+  );
+}
+
+bool _isSameDay(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
 
 Future<void> _pickDay(WidgetRef ref) async {
   final current = ref.read(selectedDayProvider);
@@ -498,13 +611,9 @@ Future<void> _pickDay(WidgetRef ref) async {
 
 String _formatSelectedDay(DateTime day) {
   final now = DateTime.now();
-  if (day.year == now.year && day.month == now.month && day.day == now.day) {
-    return 'Today';
-  }
+  if (_isSameDay(day, now)) return 'Today';
   final yesterday = now.subtract(const Duration(days: 1));
-  if (day.year == yesterday.year && day.month == yesterday.month && day.day == yesterday.day) {
-    return 'Yesterday';
-  }
+  if (_isSameDay(day, yesterday)) return 'Yesterday';
   return '${day.day}/${day.month}/${day.year}';
 }
 

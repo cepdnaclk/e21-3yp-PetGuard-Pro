@@ -54,6 +54,24 @@ final healthHistoryProvider =
   return service.getHealthHistoryStream(day);
 });
 
+/// Whether [day] had at least one caution/danger reading — used to show a
+/// quick indicator dot on the day-navigation strip, without loading the
+/// full chart data for every day up front.
+final dayHasAlertProvider =
+    FutureProvider.autoDispose.family<bool, DateTime>((ref, day) async {
+  final service = ref.watch(healthServiceProvider);
+  final thresholds = ref.watch(vitalThresholdsProvider);
+  final history = await service.getHealthHistoryForDay(day);
+
+  return history.any((v) {
+    final respAlert = v.respiratoryRate > 0 &&
+        thresholds.respiratoryStatus(v.respiratoryRate) != VitalStatus.normal;
+    final tempAlert = v.temperature > 0 &&
+        thresholds.temperatureStatus(v.calibratedTemperature) != VitalStatus.normal;
+    return respAlert || tempAlert;
+  });
+});
+
 // ── Dog profile ───────────────────────────────────────────────────────────────
 
 final dogProfileProvider = StreamProvider<DogProfile>((ref) async* {
