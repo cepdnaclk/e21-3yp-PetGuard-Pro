@@ -133,6 +133,38 @@ final temperatureAlertSettingsProvider =
   return healthService.getTemperatureAlertSettingsStream();
 });
 
+// ── Collar alignment ─────────────────────────────────────────────────────
+// Mirrors the physical-plausibility check in HealthService._checkCollarAlignment
+// (same thresholds, same "N consecutive bad readings" debounce) so the
+// dashboard can show an in-app banner in addition to the OS notification
+// that service already sends. Tracked with its own independent counter here
+// rather than reading HealthService's internal counter, so this purely-UI
+// concern can't interfere with that service-level notification logic.
+
+const double _collarMinPlausibleTemp = 30.0;
+const double _collarMaxPlausibleTemp = 45.0;
+const int _collarOutOfRangeThreshold = 5;
+
+final collarMisalignedProvider = StreamProvider<bool>((ref) {
+  final healthService = ref.watch(healthServiceProvider);
+  int consecutiveOutOfRange = 0;
+
+  return healthService.getHealthVitalsStream().map((vitals) {
+    final isOutOfRange = vitals.temperature < _collarMinPlausibleTemp ||
+        vitals.temperature > _collarMaxPlausibleTemp;
+
+    consecutiveOutOfRange = isOutOfRange ? consecutiveOutOfRange + 1 : 0;
+
+    return consecutiveOutOfRange >= _collarOutOfRangeThreshold;
+  });
+});
+
+/// Whether the user has manually dismissed the collar-alignment banner for
+/// the current out-of-range episode. Reset to false by the dashboard as
+/// soon as [collarMisalignedProvider] clears, so the banner reappears fresh
+/// if misalignment happens again later.
+final collarBannerDismissedProvider = StateProvider<bool>((ref) => false);
+
 // ── Health monitor — fires OS notifications AND in-app alerts ─────────────────
 // This is the equivalent of geofenceMonitorProvider for the health feature.
 // It must be ref.watch()ed in UserDashboardScreen so it stays alive

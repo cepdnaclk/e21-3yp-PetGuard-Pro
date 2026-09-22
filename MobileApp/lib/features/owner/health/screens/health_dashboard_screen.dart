@@ -53,6 +53,17 @@ class HealthDashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final healthAsync = ref.watch(vitalsWithTrendProvider);
 
+    // Reset the dismissed banner as soon as the collar looks fine again, so
+    // it reappears fresh if misalignment happens again later rather than
+    // staying hidden forever after a single dismissal.
+    ref.listen(collarMisalignedProvider, (previous, next) {
+      if (next.valueOrNull != true) {
+        ref.read(collarBannerDismissedProvider.notifier).state = false;
+      }
+    });
+    final collarMisaligned = ref.watch(collarMisalignedProvider).valueOrNull ?? false;
+    final collarBannerDismissed = ref.watch(collarBannerDismissedProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Health Monitoring'),
@@ -71,6 +82,12 @@ class HealthDashboardScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 24),
+
+              if (collarMisaligned && !collarBannerDismissed)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: _buildCollarAlignmentBanner(ref),
+                ),
 
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -149,6 +166,52 @@ class HealthDashboardScreen extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  // ───────────────── Collar alignment banner ─────────────────
+
+  Widget _buildCollarAlignmentBanner(WidgetRef ref) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.amber.shade300),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.warning_amber_rounded, color: Colors.amber.shade800, size: 22),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Check your dog's collar",
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: Colors.amber.shade900,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Reading looks off — the sensor may not be in contact with '
+                  'your dog\'s skin. Check the collar fit.',
+                  style: TextStyle(fontSize: 12.5, color: Colors.amber.shade900),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 4),
+          GestureDetector(
+            onTap: () => ref.read(collarBannerDismissedProvider.notifier).state = true,
+            child: Icon(Icons.close_rounded, size: 18, color: Colors.amber.shade800),
+          ),
+        ],
       ),
     );
   }
