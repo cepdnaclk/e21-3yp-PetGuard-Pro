@@ -703,6 +703,7 @@ Widget _buildDayChip(WidgetRef ref, {required DateTime day, required DateTime se
       ),
       child: Stack(
         clipBehavior: Clip.none,
+        alignment: Alignment.center,
         children: [
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
