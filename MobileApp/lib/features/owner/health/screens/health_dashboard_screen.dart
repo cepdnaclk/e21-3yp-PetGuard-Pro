@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../providers/health_provider.dart';
 import '../models/health_vitals.dart';
 import '../models/respiratory_alert_settings.dart';
+import '../models/temperature_alert_settings.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 Future<void> _launchLearnMoreUrl(BuildContext context, String url) async {
@@ -161,6 +162,9 @@ Widget _buildVitalsCards(BuildContext context, VitalsWithTrend vitalsWithTrend, 
   final respAlertSettings =
       ref.watch(respiratoryAlertSettingsProvider).valueOrNull ??
           RespiratoryAlertSettings.disabled;
+  final tempAlertSettings =
+      ref.watch(temperatureAlertSettingsProvider).valueOrNull ??
+          TemperatureAlertSettings.disabled;
 
   final now = ref.watch(nowTickerProvider).valueOrNull ?? DateTime.now();
   final elapsed = now.difference(vitals.timestamp);
@@ -256,6 +260,11 @@ Widget _buildVitalsCards(BuildContext context, VitalsWithTrend vitalsWithTrend, 
               normalRange: '${thresholds.tempNormalMin}–${thresholds.tempNormalMax}°C',
               trend: tempTrend,
               muted: isStale,
+              alertSettingsEnabled: tempAlertSettings.enabled,
+              onAlertSettingsTap: () => showDialog(
+                context: context,
+                builder: (_) => _TemperatureAlertSettingsDialog(initial: tempAlertSettings),
+              ),
             ),
           ),
         ],
@@ -1089,6 +1098,201 @@ class _RespiratoryAlertSettingsDialogState
 
     try {
       await ref.read(healthServiceProvider).saveRespiratoryAlertSettings(settings);
+      if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _error = 'Could not save: $e';
+        });
+      }
+    }
+  }
+}
+
+// ───────────────── Temperature custom alert settings ─────────────────
+
+class _TemperatureAlertSettingsDialog extends ConsumerStatefulWidget {
+  final TemperatureAlertSettings initial;
+
+  const _TemperatureAlertSettingsDialog({required this.initial});
+
+  @override
+  ConsumerState<_TemperatureAlertSettingsDialog> createState() =>
+      _TemperatureAlertSettingsDialogState();
+}
+
+class _TemperatureAlertSettingsDialogState
+    extends ConsumerState<_TemperatureAlertSettingsDialog> {
+  static const Color _primaryColor = Color.fromARGB(255, 0, 150, 136);
+
+  late bool _enabled;
+  late final TextEditingController _minController;
+  late final TextEditingController _maxController;
+  late int _sustainedMinutes;
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _enabled = widget.initial.enabled;
+    _minController = TextEditingController(
+        text: widget.initial.minTemp?.toStringAsFixed(1) ?? '');
+    _maxController = TextEditingController(
+        text: widget.initial.maxTemp?.toStringAsFixed(1) ?? '');
+    _sustainedMinutes = widget.initial.sustainedMinutes;
+  }
+
+  @override
+  void dispose() {
+    _minController.dispose();
+    _maxController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Text(
+        'Temperature Alerts',
+        style: TextStyle(fontWeight: FontWeight.w700),
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text(
+                'Enable custom alerts',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+              value: _enabled,
+              activeColor: _primaryColor,
+              onChanged: (v) => setState(() => _enabled = v),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _minController,
+                    enabled: _enabled,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Min (°C)',
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _maxController,
+                    enabled: _enabled,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Max (°C)',
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Leave a field blank to skip that limit.',
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Notify if sustained for $_sustainedMinutes min',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: _enabled ? Colors.black87 : Colors.grey.shade400,
+              ),
+            ),
+            Slider(
+              value: _sustainedMinutes.toDouble(),
+              min: 1,
+              max: 30,
+              divisions: 29,
+              activeColor: _primaryColor,
+              label: '$_sustainedMinutes min',
+              onChanged: _enabled
+                  ? (v) => setState(() => _sustainedMinutes = v.round())
+                  : null,
+            ),
+            Text(
+              'A notification is sent only once the temperature stays outside '
+              'your limit continuously for this long — a brief spike won\'t trigger it.',
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                _error!,
+                style: const TextStyle(fontSize: 12, color: Colors.red),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: _saving ? null : _save,
+          style: TextButton.styleFrom(foregroundColor: _primaryColor),
+          child: _saving
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Save'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _save() async {
+    final min = double.tryParse(_minController.text.trim());
+    final max = double.tryParse(_maxController.text.trim());
+
+    if (_enabled && min == null && max == null) {
+      setState(() => _error = 'Set at least a min or max limit, or turn alerts off.');
+      return;
+    }
+    if (min != null && max != null && min >= max) {
+      setState(() => _error = 'Min must be less than max.');
+      return;
+    }
+
+    setState(() {
+      _error = null;
+      _saving = true;
+    });
+
+    final settings = TemperatureAlertSettings(
+      enabled: _enabled,
+      minTemp: min,
+      maxTemp: max,
+      sustainedMinutes: _sustainedMinutes,
+    );
+
+    try {
+      await ref.read(healthServiceProvider).saveTemperatureAlertSettings(settings);
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       if (mounted) {

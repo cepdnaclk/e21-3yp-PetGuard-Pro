@@ -7,6 +7,7 @@ import '../repositories/firebase_health_repository.dart';
 import '../models/health_vitals.dart';
 import '../models/dog_profile.dart';
 import '../models/respiratory_alert_settings.dart';
+import '../models/temperature_alert_settings.dart';
 import '../../location/services/notification_service.dart';
 
 class HealthService {
@@ -213,6 +214,84 @@ class HealthService {
         title: '⚠️ Respiratory Rate Out of Range',
         body: 'Rate has stayed $direction your $limit br/min limit for '
             '${settings.sustainedMinutes}+ min (currently $rate br/min).',
+      );
+    }
+  }
+
+  // ── Custom temperature alerts ───────────────────────────────────────────
+
+  /// Streams the user's custom temperature alert settings for their
+  /// currently selected pet.
+  Stream<TemperatureAlertSettings> getTemperatureAlertSettingsStream() async* {
+    final petId = await _getPetId();
+    yield* FirebaseFirestore.instance
+        .collection('pets')
+        .doc(petId)
+        .snapshots()
+        .map((snap) => TemperatureAlertSettings.fromFirestore(
+            snap.data()?['temperatureAlertSettings'] as Map<String, dynamic>?));
+  }
+
+  /// Persists the user's custom temperature alert settings.
+  Future<void> saveTemperatureAlertSettings(
+      TemperatureAlertSettings settings) async {
+    final petId = await _getPetId();
+    await FirebaseFirestore.instance.collection('pets').doc(petId).set(
+      {'temperatureAlertSettings': settings.toFirestore()},
+      SetOptions(merge: true),
+    );
+  }
+
+  // Tracks how long the current reading has stayed continuously out of the
+  // user's custom range, and whether we've already alerted for this streak.
+  DateTime? _tempOutOfRangeSince;
+  bool _tempAlertSent = false;
+
+  /// Checks a live reading against the user's custom temperature limits (if
+  /// enabled) and fires a notification once the temperature has stayed
+  /// continuously out of range for [TemperatureAlertSettings.sustainedMinutes].
+  /// Only one notification is sent per continuous out-of-range streak; the
+  /// streak resets as soon as a reading comes back in range.
+  void checkCustomTemperatureAlert(
+    HealthVitals vitals,
+    TemperatureAlertSettings settings,
+  ) {
+    if (!settings.enabled || !settings.hasLimits || vitals.temperature <= 0) {
+      _tempOutOfRangeSince = null;
+      _tempAlertSent = false;
+      return;
+    }
+
+    final temp = vitals.calibratedTemperature;
+    final belowMin = settings.minTemp != null && temp < settings.minTemp!;
+    final aboveMax = settings.maxTemp != null && temp > settings.maxTemp!;
+
+    if (!belowMin && !aboveMax) {
+      _tempOutOfRangeSince = null;
+      _tempAlertSent = false;
+      return;
+    }
+
+    // Use the sensor's own timestamp (not wall-clock "now") so the sustained
+    // duration reflects actual elapsed sensor time, not app processing time.
+    _tempOutOfRangeSince ??= vitals.timestamp;
+    final sustainedFor = vitals.timestamp.difference(_tempOutOfRangeSince!);
+
+    if (!_tempAlertSent &&
+        sustainedFor >= Duration(minutes: settings.sustainedMinutes)) {
+      _tempAlertSent = true;
+      final direction = aboveMax ? 'above' : 'below';
+      final limit = aboveMax ? settings.maxTemp : settings.minTemp;
+
+      debugPrint(
+          '⚠️ Temperature $direction custom limit (${limit?.toStringAsFixed(1)}°C) '
+          'for ${settings.sustainedMinutes}+ min — sending alert');
+
+      NotificationService().showNotification(
+        title: '⚠️ Temperature Out of Range',
+        body: 'Temperature has stayed $direction your ${limit?.toStringAsFixed(1)}°C '
+            'limit for ${settings.sustainedMinutes}+ min '
+            '(currently ${temp.toStringAsFixed(1)}°C).',
       );
     }
   }
