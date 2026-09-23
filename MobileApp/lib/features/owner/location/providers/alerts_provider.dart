@@ -27,7 +27,11 @@ class AlertsNotifier extends StateNotifier<List<AppAlert>> {
   AlertsNotifier() : super([]);
 
   void add(AppAlert alert) {
-    state = [alert, ...state];
+    Future.microtask(() {
+      if (mounted) {
+        state = [alert, ...state];
+      }
+    });
   }
 
   void clearAll() {

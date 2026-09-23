@@ -403,6 +403,28 @@ class _StatusBannerState extends State<_StatusBanner> {
     );
   }
 
+  static double _toDouble(dynamic v, [double fallback = 0.0]) {
+    if (v == null) return fallback;
+    if (v is double) return v;
+    if (v is int) return v.toDouble();
+    return double.tryParse(v.toString()) ?? fallback;
+  }
+
+  static int _toInt(dynamic v, [int fallback = 0]) {
+    if (v == null) return fallback;
+    if (v is int) return v;
+    if (v is double) return v.toInt();
+    return int.tryParse(v.toString()) ?? fallback;
+  }
+
+  static bool _toBool(dynamic v, [bool fallback = false]) {
+    if (v == null) return fallback;
+    if (v is bool) return v;
+    if (v is int) return v != 0;
+    final s = v.toString().toLowerCase();
+    return s == 'true' || s == '1';
+  }
+
   int? _getLatestTimestampMs(Map<dynamic, dynamic>? data) {
     if (data == null) return null;
 
@@ -411,6 +433,7 @@ class _StatusBannerState extends State<_StatusBanner> {
     final healthTs = healthMap?['timestamp'];
     if (healthTs != null) {
       if (healthTs is int) return healthTs;
+      if (healthTs is num) return healthTs.toInt();
       final parsed = DateTime.tryParse(healthTs.toString());
       if (parsed != null) return parsed.millisecondsSinceEpoch;
     }
@@ -421,6 +444,7 @@ class _StatusBannerState extends State<_StatusBanner> {
     final actTs = currentActMap?['timestamp'];
     if (actTs != null) {
       if (actTs is int) return actTs;
+      if (actTs is num) return actTs.toInt();
       final parsed = DateTime.tryParse(actTs.toString());
       if (parsed != null) return parsed.millisecondsSinceEpoch;
     }
@@ -429,6 +453,7 @@ class _StatusBannerState extends State<_StatusBanner> {
     final rootTs = data['timestamp'];
     if (rootTs != null) {
       if (rootTs is int) return rootTs;
+      if (rootTs is num) return rootTs.toInt();
       final parsed = DateTime.tryParse(rootTs.toString());
       if (parsed != null) return parsed.millisecondsSinceEpoch;
     }
@@ -460,24 +485,30 @@ class _StatusBannerState extends State<_StatusBanner> {
 
     if (data != null) {
       final batteryMap = data['battery'] as Map?;
-      batteryPercent = (batteryMap?['percentage'] ?? 100) as int;
+      batteryPercent = _toInt(batteryMap?['percentage'], 100);
 
       final healthMap = data['health'] as Map?;
-      respiratoryRate = (healthMap?['respiratoryRate'] ?? 0) as int;
-      temp = (healthMap?['temperature'] ?? 0.0) as double;
+      respiratoryRate = _toInt(healthMap?['respiratoryRate'], 0);
+      temp = _toDouble(healthMap?['temperature'], 0.0);
 
       final activityMap = data['activity'] as Map?;
       final currentActMap = activityMap?['current'] as Map?;
-      steps = (currentActMap?['step_count'] ?? 0) as int;
+      steps = _toInt(currentActMap?['step_count'], 0);
       actType = (currentActMap?['activity_type'] ?? 'RESTING')
           .toString()
           .toUpperCase();
-      impact = (currentActMap?['impact_detected'] ?? false) as bool;
+      impact = _toBool(currentActMap?['impact_detected'], false);
 
       final locationMap = data['current_location'] as Map?;
-      if (locationMap != null) {
-        lat = (locationMap['latitude'] ?? 0.0) as double;
-        lng = (locationMap['longitude'] ?? 0.0) as double;
+      if (locationMap != null &&
+          locationMap['latitude'] != null &&
+          locationMap['longitude'] != null) {
+        final parsedLat = _toDouble(locationMap['latitude'], 0.0);
+        final parsedLng = _toDouble(locationMap['longitude'], 0.0);
+        if (parsedLat != 0.0 || parsedLng != 0.0) {
+          lat = parsedLat;
+          lng = parsedLng;
+        }
       }
     }
 

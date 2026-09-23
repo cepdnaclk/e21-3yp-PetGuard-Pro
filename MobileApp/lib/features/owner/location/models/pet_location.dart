@@ -54,8 +54,8 @@ class PetLocation {
     }
 
     return PetLocation(
-      latitude: (json['latitude'] as num).toDouble(),
-      longitude: (json['longitude'] as num).toDouble(),
+      latitude: (json['latitude'] as num? ?? 0.0).toDouble(),
+      longitude: (json['longitude'] as num? ?? 0.0).toDouble(),
       accuracy: json['accuracy'] != null
           ? (json['accuracy'] as num).toDouble()
           : null,

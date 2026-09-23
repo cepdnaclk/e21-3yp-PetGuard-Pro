@@ -52,8 +52,8 @@ class LocationHistoryEntry {
       // (which have no 'id' field) get a stable, deterministic ID instead of
       // a random DateTime.now() value that changes on every parse.
       id: json['id'] as String? ?? parsedTime.millisecondsSinceEpoch.toString(),
-      latitude: (json['latitude'] as num).toDouble(),
-      longitude: (json['longitude'] as num).toDouble(),
+      latitude: (json['latitude'] as num? ?? 0.0).toDouble(),
+      longitude: (json['longitude'] as num? ?? 0.0).toDouble(),
       timestamp: parsedTime,
       accuracy: json['accuracy'] != null
           ? (json['accuracy'] as num).toDouble()

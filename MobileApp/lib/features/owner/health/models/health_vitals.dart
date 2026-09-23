@@ -43,7 +43,7 @@ class HealthVitals {
 
     return HealthVitals(
       respiratoryRate: (json['respiratoryRate'] as num? ?? 0).toInt(),
-      temperature: (json['temperature'] as num).toDouble(),
+      temperature: (json['temperature'] as num? ?? 0.0).toDouble(),
       timestamp: parsedTime,
     );
   }
