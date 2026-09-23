@@ -1,7 +1,7 @@
 #pragma once
 // ── WiFi ──────────────────────────────────────────────────────
-#define WIFI_SSID       "Redmi Note 11 Pro 5G"
-#define WIFI_PASSWORD   "6ujeeuccxnaan2j"
+#define WIFI_SSID       ""
+#define WIFI_PASSWORD   ""
 // ── Firebase ──────────────────────────────────────────────────
 #define FIREBASE_HOST   "petguardpro-efda9-default-rtdb.asia-southeast1.firebasedatabase.app"
 #define FIREBASE_AUTH   "032FWNdxI7sdtn60rqBpTeSU0cPl0uQgLMoOYrgX"
