@@ -8,8 +8,6 @@ import '../services/health_service.dart';
 import '../models/health_vitals.dart';
 import '../models/dog_profile.dart';
 import '../models/vital_thresholds.dart';
-import '../models/respiratory_alert_settings.dart';
-import '../models/temperature_alert_settings.dart';
 import '../../location/providers/alerts_provider.dart';
 import '../../location/services/notification_service.dart';
 
@@ -26,32 +24,6 @@ final healthVitalsStreamProvider = StreamProvider<HealthVitals>((ref) {
   return healthService.getHealthVitalsStream();
 });
 
-// ── Live vitals + trend (current vs. previous reading) ─────────────────────
-
-class VitalsWithTrend {
-  final HealthVitals current;
-  final HealthVitals? previous;
-
-  const VitalsWithTrend({required this.current, this.previous});
-}
-
-final vitalsWithTrendProvider = StreamProvider<VitalsWithTrend>((ref) {
-  final healthService = ref.watch(healthServiceProvider);
-  HealthVitals? previous;
-  return healthService.getHealthVitalsStream().map((vitals) {
-    final withTrend = VitalsWithTrend(current: vitals, previous: previous);
-    previous = vitals;
-    return withTrend;
-  });
-});
-
-// ── Ticker — periodic rebuild trigger for "updated Xs ago" labels and
-// staleness checks, so the UI updates even when no new reading arrives. ────
-
-final nowTickerProvider = StreamProvider.autoDispose<DateTime>((ref) {
-  return Stream<DateTime>.periodic(const Duration(seconds: 1), (_) => DateTime.now());
-});
-
 // ── History ───────────────────────────────────────────────────────────────────
 
 final selectedDayProvider = StateProvider<DateTime>((ref) => DateTime.now());
@@ -61,24 +33,6 @@ final healthHistoryProvider =
   final service = ref.watch(healthServiceProvider);
   final day = ref.watch(selectedDayProvider);
   return service.getHealthHistoryStream(day);
-});
-
-/// Whether [day] had at least one caution/danger reading — used to show a
-/// quick indicator dot on the day-navigation strip, without loading the
-/// full chart data for every day up front.
-final dayHasAlertProvider =
-    FutureProvider.autoDispose.family<bool, DateTime>((ref, day) async {
-  final service = ref.watch(healthServiceProvider);
-  final thresholds = ref.watch(vitalThresholdsProvider);
-  final history = await service.getHealthHistoryForDay(day);
-
-  return history.any((v) {
-    final respAlert = v.respiratoryRate > 0 &&
-        thresholds.respiratoryStatus(v.respiratoryRate) != VitalStatus.normal;
-    final tempAlert = v.temperature > 0 &&
-        thresholds.temperatureStatus(v.calibratedTemperature) != VitalStatus.normal;
-    return respAlert || tempAlert;
-  });
 });
 
 // ── Dog profile ───────────────────────────────────────────────────────────────
@@ -117,54 +71,6 @@ final vitalThresholdsProvider = Provider<VitalThresholds>((ref) {
   return VitalThresholds.fromProfile(profile);
 });
 
-// ── Custom respiratory rate alert settings ──────────────────────────────────
-
-final respiratoryAlertSettingsProvider =
-    StreamProvider<RespiratoryAlertSettings>((ref) {
-  final healthService = ref.watch(healthServiceProvider);
-  return healthService.getRespiratoryAlertSettingsStream();
-});
-
-// ── Custom temperature alert settings ───────────────────────────────────────
-
-final temperatureAlertSettingsProvider =
-    StreamProvider<TemperatureAlertSettings>((ref) {
-  final healthService = ref.watch(healthServiceProvider);
-  return healthService.getTemperatureAlertSettingsStream();
-});
-
-// ── Collar alignment ─────────────────────────────────────────────────────
-// Mirrors the physical-plausibility check in HealthService._checkCollarAlignment
-// (same thresholds, same "N consecutive bad readings" debounce) so the
-// dashboard can show an in-app banner in addition to the OS notification
-// that service already sends. Tracked with its own independent counter here
-// rather than reading HealthService's internal counter, so this purely-UI
-// concern can't interfere with that service-level notification logic.
-
-const double _collarMinPlausibleTemp = 30.0;
-const double _collarMaxPlausibleTemp = 45.0;
-const int _collarOutOfRangeThreshold = 5;
-
-final collarMisalignedProvider = StreamProvider<bool>((ref) {
-  final healthService = ref.watch(healthServiceProvider);
-  int consecutiveOutOfRange = 0;
-
-  return healthService.getHealthVitalsStream().map((vitals) {
-    final isOutOfRange = vitals.temperature < _collarMinPlausibleTemp ||
-        vitals.temperature > _collarMaxPlausibleTemp;
-
-    consecutiveOutOfRange = isOutOfRange ? consecutiveOutOfRange + 1 : 0;
-
-    return consecutiveOutOfRange >= _collarOutOfRangeThreshold;
-  });
-});
-
-/// Whether the user has manually dismissed the collar-alignment banner for
-/// the current out-of-range episode. Reset to false by the dashboard as
-/// soon as [collarMisalignedProvider] clears, so the banner reappears fresh
-/// if misalignment happens again later.
-final collarBannerDismissedProvider = StateProvider<bool>((ref) => false);
-
 // ── Health monitor — fires OS notifications AND in-app alerts ─────────────────
 // This is the equivalent of geofenceMonitorProvider for the health feature.
 // It must be ref.watch()ed in UserDashboardScreen so it stays alive
@@ -174,22 +80,9 @@ final collarBannerDismissedProvider = StateProvider<bool>((ref) => false);
 final healthAlertMonitorProvider = Provider<void>((ref) {
   final vitalsAsync = ref.watch(healthVitalsStreamProvider);
   final thresholds = ref.watch(vitalThresholdsProvider);
-  final customRespSettings =
-      ref.watch(respiratoryAlertSettingsProvider).valueOrNull ??
-          RespiratoryAlertSettings.disabled;
-  final customTempSettings =
-      ref.watch(temperatureAlertSettingsProvider).valueOrNull ??
-          TemperatureAlertSettings.disabled;
   final notificationService = NotificationService();
-  final healthService = ref.watch(healthServiceProvider);
 
   vitalsAsync.whenData((vitals) {
-    // ── Custom respiratory-rate alert (user-set limits, sustained duration) ─
-    healthService.checkCustomRespiratoryAlert(vitals, customRespSettings);
-
-    // ── Custom temperature alert (user-set limits, sustained duration) ────
-    healthService.checkCustomTemperatureAlert(vitals, customTempSettings);
-
     // ── Respiratory rate alerts ───────────────────────────────────────────
     if (vitals.respiratoryRate > 0) {
       final respStatus = thresholds.respiratoryStatus(vitals.respiratoryRate);
