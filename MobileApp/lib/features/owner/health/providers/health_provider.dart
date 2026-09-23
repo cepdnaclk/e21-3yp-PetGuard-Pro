@@ -8,7 +8,6 @@ import '../services/health_service.dart';
 import '../models/health_vitals.dart';
 import '../models/dog_profile.dart';
 import '../models/vital_thresholds.dart';
-import '../models/respiratory_alert_settings.dart';
 import '../../location/providers/alerts_provider.dart';
 import '../../location/services/notification_service.dart';
 
@@ -25,32 +24,6 @@ final healthVitalsStreamProvider = StreamProvider<HealthVitals>((ref) {
   return healthService.getHealthVitalsStream();
 });
 
-// ── Live vitals + trend (current vs. previous reading) ─────────────────────
-
-class VitalsWithTrend {
-  final HealthVitals current;
-  final HealthVitals? previous;
-
-  const VitalsWithTrend({required this.current, this.previous});
-}
-
-final vitalsWithTrendProvider = StreamProvider<VitalsWithTrend>((ref) {
-  final healthService = ref.watch(healthServiceProvider);
-  HealthVitals? previous;
-  return healthService.getHealthVitalsStream().map((vitals) {
-    final withTrend = VitalsWithTrend(current: vitals, previous: previous);
-    previous = vitals;
-    return withTrend;
-  });
-});
-
-// ── Ticker — periodic rebuild trigger for "updated Xs ago" labels and
-// staleness checks, so the UI updates even when no new reading arrives. ────
-
-final nowTickerProvider = StreamProvider.autoDispose<DateTime>((ref) {
-  return Stream<DateTime>.periodic(const Duration(seconds: 1), (_) => DateTime.now());
-});
-
 // ── History ───────────────────────────────────────────────────────────────────
 
 final selectedDayProvider = StateProvider<DateTime>((ref) => DateTime.now());
@@ -60,24 +33,6 @@ final healthHistoryProvider =
   final service = ref.watch(healthServiceProvider);
   final day = ref.watch(selectedDayProvider);
   return service.getHealthHistoryStream(day);
-});
-
-/// Whether [day] had at least one caution/danger reading — used to show a
-/// quick indicator dot on the day-navigation strip, without loading the
-/// full chart data for every day up front.
-final dayHasAlertProvider =
-    FutureProvider.autoDispose.family<bool, DateTime>((ref, day) async {
-  final service = ref.watch(healthServiceProvider);
-  final thresholds = ref.watch(vitalThresholdsProvider);
-  final history = await service.getHealthHistoryForDay(day);
-
-  return history.any((v) {
-    final respAlert = v.respiratoryRate > 0 &&
-        thresholds.respiratoryStatus(v.respiratoryRate) != VitalStatus.normal;
-    final tempAlert = v.temperature > 0 &&
-        thresholds.temperatureStatus(v.calibratedTemperature) != VitalStatus.normal;
-    return respAlert || tempAlert;
-  });
 });
 
 // ── Dog profile ───────────────────────────────────────────────────────────────
@@ -116,14 +71,6 @@ final vitalThresholdsProvider = Provider<VitalThresholds>((ref) {
   return VitalThresholds.fromProfile(profile);
 });
 
-// ── Custom respiratory rate alert settings ──────────────────────────────────
-
-final respiratoryAlertSettingsProvider =
-    StreamProvider<RespiratoryAlertSettings>((ref) {
-  final healthService = ref.watch(healthServiceProvider);
-  return healthService.getRespiratoryAlertSettingsStream();
-});
-
 // ── Health monitor — fires OS notifications AND in-app alerts ─────────────────
 // This is the equivalent of geofenceMonitorProvider for the health feature.
 // It must be ref.watch()ed in UserDashboardScreen so it stays alive
@@ -133,16 +80,9 @@ final respiratoryAlertSettingsProvider =
 final healthAlertMonitorProvider = Provider<void>((ref) {
   final vitalsAsync = ref.watch(healthVitalsStreamProvider);
   final thresholds = ref.watch(vitalThresholdsProvider);
-  final customRespSettings =
-      ref.watch(respiratoryAlertSettingsProvider).valueOrNull ??
-          RespiratoryAlertSettings.disabled;
   final notificationService = NotificationService();
-  final healthService = ref.watch(healthServiceProvider);
 
   vitalsAsync.whenData((vitals) {
-    // ── Custom respiratory-rate alert (user-set limits, sustained duration) ─
-    healthService.checkCustomRespiratoryAlert(vitals, customRespSettings);
-
     // ── Respiratory rate alerts ───────────────────────────────────────────
     if (vitals.respiratoryRate > 0) {
       final respStatus = thresholds.respiratoryStatus(vitals.respiratoryRate);

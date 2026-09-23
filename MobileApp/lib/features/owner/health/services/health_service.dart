@@ -6,7 +6,6 @@ import '../repositories/health_repository.dart';
 import '../repositories/firebase_health_repository.dart';
 import '../models/health_vitals.dart';
 import '../models/dog_profile.dart';
-import '../models/respiratory_alert_settings.dart';
 import '../../location/services/notification_service.dart';
 
 class HealthService {
@@ -138,82 +137,5 @@ class HealthService {
   void setRepository(HealthRepository repository) {
     _repository = repository;
     debugPrint('Health repository switched');
-  }
-
-  // ── Custom respiratory rate alerts ──────────────────────────────────────
-
-  /// Streams the user's custom respiratory-rate alert settings for their
-  /// currently selected pet.
-  Stream<RespiratoryAlertSettings> getRespiratoryAlertSettingsStream() async* {
-    final petId = await _getPetId();
-    yield* FirebaseFirestore.instance
-        .collection('pets')
-        .doc(petId)
-        .snapshots()
-        .map((snap) => RespiratoryAlertSettings.fromFirestore(
-            snap.data()?['respiratoryAlertSettings'] as Map<String, dynamic>?));
-  }
-
-  /// Persists the user's custom respiratory-rate alert settings.
-  Future<void> saveRespiratoryAlertSettings(
-      RespiratoryAlertSettings settings) async {
-    final petId = await _getPetId();
-    await FirebaseFirestore.instance.collection('pets').doc(petId).set(
-      {'respiratoryAlertSettings': settings.toFirestore()},
-      SetOptions(merge: true),
-    );
-  }
-
-  // Tracks how long the current reading has stayed continuously out of the
-  // user's custom range, and whether we've already alerted for this streak.
-  DateTime? _respOutOfRangeSince;
-  bool _respAlertSent = false;
-
-  /// Checks a live reading against the user's custom respiratory-rate
-  /// limits (if enabled) and fires a notification once the rate has stayed
-  /// continuously out of range for [RespiratoryAlertSettings.sustainedMinutes].
-  /// Only one notification is sent per continuous out-of-range streak; the
-  /// streak resets as soon as a reading comes back in range.
-  void checkCustomRespiratoryAlert(
-    HealthVitals vitals,
-    RespiratoryAlertSettings settings,
-  ) {
-    if (!settings.enabled || !settings.hasLimits || vitals.respiratoryRate <= 0) {
-      _respOutOfRangeSince = null;
-      _respAlertSent = false;
-      return;
-    }
-
-    final rate = vitals.respiratoryRate;
-    final belowMin = settings.minRate != null && rate < settings.minRate!;
-    final aboveMax = settings.maxRate != null && rate > settings.maxRate!;
-
-    if (!belowMin && !aboveMax) {
-      _respOutOfRangeSince = null;
-      _respAlertSent = false;
-      return;
-    }
-
-    // Use the sensor's own timestamp (not wall-clock "now") so the sustained
-    // duration reflects actual elapsed sensor time, not app processing time.
-    _respOutOfRangeSince ??= vitals.timestamp;
-    final sustainedFor = vitals.timestamp.difference(_respOutOfRangeSince!);
-
-    if (!_respAlertSent &&
-        sustainedFor >= Duration(minutes: settings.sustainedMinutes)) {
-      _respAlertSent = true;
-      final direction = aboveMax ? 'above' : 'below';
-      final limit = aboveMax ? settings.maxRate : settings.minRate;
-
-      debugPrint(
-          '⚠️ Respiratory rate $direction custom limit ($limit br/min) '
-          'for ${settings.sustainedMinutes}+ min — sending alert');
-
-      NotificationService().showNotification(
-        title: '⚠️ Respiratory Rate Out of Range',
-        body: 'Rate has stayed $direction your $limit br/min limit for '
-            '${settings.sustainedMinutes}+ min (currently $rate br/min).',
-      );
-    }
   }
 }
